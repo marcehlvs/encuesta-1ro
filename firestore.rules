@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /encuestas_habitos/{id} {
+      // Nadie lee, edita ni borra desde el navegador. Las respuestas se ven solo desde la consola de Firebase.
+      allow read, update, delete: if false;
+
+      allow create: if
+        request.resource.data.keys().hasOnly(
+          ['rol','rangoEdad','horasSueno','vasosAgua','alimentacion','horasPantalla','diasActividad','timestamp']) &&
+        request.resource.data.keys().hasAll(
+          ['rol','rangoEdad','horasSueno','vasosAgua','alimentacion','horasPantalla','diasActividad','timestamp']) &&
+        request.resource.data.rol in ['Alumno','Profesor','Preceptor','Directivo'] &&
+        request.resource.data.rangoEdad in ['Menos de 12','12 a 14','15 a 17','18 a 25','26 a 40','41 a 60','Más de 60'] &&
+        request.resource.data.horasSueno is number &&
+        request.resource.data.horasSueno >= 0 && request.resource.data.horasSueno <= 12 &&
+        request.resource.data.vasosAgua is int &&
+        request.resource.data.vasosAgua >= 0 && request.resource.data.vasosAgua <= 30 &&
+        request.resource.data.alimentacion in ['Omnívora','Vegetariana','Vegana','Otra'] &&
+        request.resource.data.horasPantalla is number &&
+        request.resource.data.horasPantalla >= 0 && request.resource.data.horasPantalla <= 24 &&
+        request.resource.data.diasActividad in ['0','1-2','3','4+'] &&
+        request.resource.data.timestamp == request.time;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

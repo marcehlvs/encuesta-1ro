@@ -1,13 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /encuestas_habitos/{id} {
-      // Nadie lee, edita ni borra desde el navegador. Las respuestas se ven solo desde la consola de Firebase.
-      allow read, update, delete: if false;
 
+    // Docentes autorizados: un documento por UID de Authentication (se crea a mano en la consola).
+    // Se autoriza por UID y no por correo: cualquiera puede registrar una cuenta con la clave de API pública,
+    // pero nadie puede darse de alta a sí mismo en esta colección.
+    function esDocente() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/docentes/$(request.auth.uid));
+    }
+
+    match /docentes/{uid} {
+      // Cada persona solo puede comprobar su propio documento (para que el panel sepa si tiene permiso).
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    match /encuestas_habitos/{id} {
+      // Solo docentes autorizados leen y borran (el panel). Nadie edita desde el navegador.
+      allow read: if esDocente();
+      allow delete: if esDocente();
+      allow update: if false;
+
+      // diasDesayuno y celularAntesDormir son opcionales en las reglas para que una pestaña con la versión
+      // anterior del formulario no pierda respuestas mientras se actualiza; el formulario nuevo los exige.
       allow create: if
         request.resource.data.keys().hasOnly(
-          ['rol','rangoEdad','horasSueno','vasosAgua','alimentacion','horasPantalla','diasActividad','timestamp']) &&
+          ['rol','rangoEdad','horasSueno','vasosAgua','alimentacion','horasPantalla','diasActividad',
+           'diasDesayuno','celularAntesDormir','timestamp']) &&
         request.resource.data.keys().hasAll(
           ['rol','rangoEdad','horasSueno','vasosAgua','alimentacion','horasPantalla','diasActividad','timestamp']) &&
         request.resource.data.rol in ['Alumno','Profesor','Preceptor','Directivo'] &&
@@ -20,6 +40,11 @@ service cloud.firestore {
         request.resource.data.horasPantalla is number &&
         request.resource.data.horasPantalla >= 0 && request.resource.data.horasPantalla <= 24 &&
         request.resource.data.diasActividad in ['0','1-2','3','4+'] &&
+        (!('diasDesayuno' in request.resource.data) ||
+          (request.resource.data.diasDesayuno is int &&
+           request.resource.data.diasDesayuno >= 0 && request.resource.data.diasDesayuno <= 7)) &&
+        (!('celularAntesDormir' in request.resource.data) ||
+          request.resource.data.celularAntesDormir in ['Nunca','Menos de 30 min','30 a 60 min','Más de 60 min']) &&
         request.resource.data.timestamp == request.time;
     }
     match /{document=**} { allow read, write: if false; }

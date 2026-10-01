@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { getFirestore } from "firebase/firestore";
 
 // Las credenciales salen de variables de entorno (.env), no del código.
@@ -12,14 +12,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
-// App Check: solo tu sitio (validado con reCAPTCHA) puede escribir en Firestore.
+// App Check: solo tu sitio (validado con reCAPTCHA Enterprise) puede usar Firestore.
+// El proveedor debe coincidir con el registrado en la consola (App Check > Aplicaciones):
+// si la app está registrada con reCAPTCHA Enterprise ("Fraud Defense"), se usa este; con reCAPTCHA v3 clásico, ReCaptchaV3Provider.
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 if (siteKey) {
   if (import.meta.env.DEV) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // token de depuración local
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(siteKey),
+    provider: new ReCaptchaEnterpriseProvider(siteKey),
     isTokenAutoRefreshEnabled: true,
   });
 }

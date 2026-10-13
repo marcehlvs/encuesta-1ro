@@ -1,6 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { METRICAS, MIN_GRUPO, armarTablas, aCsv } from "../agregacion";
+import { armarEstadistica } from "../estadistica";
+import Graficos from "./Graficos";
+import Estadistica from "./Estadistica";
 import { Titulo, btnPrimario, tarjeta } from "./ui";
+
+const PESTANAS = [["resumen", "📋 Resumen"], ["graficos", "📊 Gráficos"], ["estadistica", "🧮 Estadística"]];
 
 const nf = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmt = (v, m) => (v === null ? "—" : m.pct ? `${Math.round(v)} %` : nf.format(v));
@@ -85,7 +90,7 @@ function Barras({ titulo, filas, metrica, max, color }) {
   );
 }
 
-function Graficos({ t }) {
+function GraficosPromedios({ t }) {
   return (
     <section className={tarjeta}>
       <Titulo emoji="📈">Gráficos</Titulo>
@@ -125,6 +130,8 @@ function descargarCsv(t) {
 
 export default function PanelResultados({ filas }) {
   const t = useMemo(() => armarTablas(filas), [filas]);
+  const est = useMemo(() => armarEstadistica(filas), [filas]);
+  const [pestana, setPestana] = useState("resumen");
 
   return (
     <div className="space-y-6">
@@ -151,10 +158,27 @@ export default function PanelResultados({ filas }) {
         </p>
       ) : (
         <>
-          <Tabla emoji="🌎" titulo="Total" filas={[{ grupo: "Todos", ...t.total }]} />
-          <Tabla emoji="🧑‍🎓" titulo="Por rol" filas={t.roles.filas} ocultos={t.roles.ocultos} />
-          <Tabla emoji="🎂" titulo="Por rango de edad" filas={t.edades.filas} ocultos={t.edades.ocultos} />
-          <Graficos t={t} />
+          <div role="tablist" aria-label="Secciones de resultados" className="flex flex-wrap gap-2">
+            {PESTANAS.map(([id, texto]) => (
+              <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={pestana === id} aria-controls={`panel-${id}`}
+                onClick={() => setPestana(id)}
+                className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${pestana === id ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/40" : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-indigo-50"}`}>
+                {texto}
+              </button>
+            ))}
+          </div>
+          <div role="tabpanel" id={`panel-${pestana}`} aria-labelledby={`tab-${pestana}`} className="space-y-6">
+            {pestana === "resumen" && (
+              <>
+                <Tabla emoji="🌎" titulo="Total" filas={[{ grupo: "Todos", ...t.total }]} />
+                <Tabla emoji="🧑‍🎓" titulo="Por rol" filas={t.roles.filas} ocultos={t.roles.ocultos} />
+                <Tabla emoji="🎂" titulo="Por rango de edad" filas={t.edades.filas} ocultos={t.edades.ocultos} />
+                <GraficosPromedios t={t} />
+              </>
+            )}
+            {pestana === "graficos" && <Graficos est={est} />}
+            {pestana === "estadistica" && <Estadistica est={est} />}
+          </div>
         </>
       )}
     </div>

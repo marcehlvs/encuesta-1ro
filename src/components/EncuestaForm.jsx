@@ -6,12 +6,12 @@ import { ROLES, EDADES, ALIMENTACION, ACTIVIDAD, CELULAR, limpiarRespuestas } fr
 
 const INICIAL = {
   rol: "", rangoEdad: "", horasSueno: 8, vasosAgua: "",
-  alimentacion: "", horasPantalla: "", diasActividad: "",
+  alimentacion: "", horasPantalla: "", horasLectura: "", diasActividad: "",
   diasDesayuno: "", celularAntesDormir: "",
 };
 const DESAYUNO = ["0", "1", "2", "3", "4", "5", "6", "7"];
 // Campos que la persona tiene que completar (el sueño ya viene con un valor inicial en el control deslizante).
-const REQUERIDOS = ["rol", "rangoEdad", "vasosAgua", "alimentacion", "horasPantalla", "diasActividad", "diasDesayuno", "celularAntesDormir"];
+const REQUERIDOS = ["rol", "rangoEdad", "vasosAgua", "alimentacion", "horasPantalla", "horasLectura", "diasActividad", "diasDesayuno", "celularAntesDormir"];
 const MIN_MS = 4000;       // un humano tarda más que esto en completar el formulario
 const COOLDOWN_MS = 30000; // espera entre intentos fallidos
 
@@ -153,6 +153,9 @@ export default function EncuestaForm({ t, onSuccess }) {
       <Pregunta id="q-agua" emoji="💧" tono="sky" titulo={t.agua}>
         <Numero id="q-agua" unidad={t.uVasos} inputMode="numeric" name="vasosAgua" min="0" max="30" step="1"
           value={form.vasosAgua} onChange={onChange} placeholder={t.phAgua} />
+        <p className="mt-3 rounded-2xl bg-sky-50 px-4 py-2.5 text-sm text-sky-900 ring-1 ring-sky-100">
+          <span aria-hidden="true">💡 </span>{t.aguaAyuda}
+        </p>
       </Pregunta>
 
       <Pregunta id="q-alim" emoji="🥗" tono="emerald" titulo={t.alim}>
@@ -162,6 +165,11 @@ export default function EncuestaForm({ t, onSuccess }) {
       <Pregunta id="q-pantalla" emoji="📱" tono="cyan" titulo={t.pantalla}>
         <Numero id="q-pantalla" unidad={t.uHoras} inputMode="decimal" name="horasPantalla" min="0" max="24" step="0.5"
           value={form.horasPantalla} onChange={onChange} placeholder={t.phPantalla} />
+      </Pregunta>
+
+      <Pregunta id="q-lectura" emoji="📚" tono="indigo" titulo={t.lectura}>
+        <Numero id="q-lectura" unidad={t.uHoras} inputMode="decimal" name="horasLectura" min="0" max="24" step="0.5"
+          value={form.horasLectura} onChange={onChange} placeholder={t.phLectura} />
       </Pregunta>
 
       <Pregunta id="q-actividad" emoji="🏃" tono="orange" titulo={t.actividad}>

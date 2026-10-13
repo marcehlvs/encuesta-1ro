@@ -13,6 +13,7 @@ export function limpiarRespuestas(f) {
   const vasosAgua = Number(f.vasosAgua);
   const horasPantalla = Number(f.horasPantalla);
   const diasDesayuno = Number(f.diasDesayuno);
+  const horasLectura = Number(f.horasLectura);
 
   const ok =
     ROLES.includes(f.rol) &&
@@ -24,7 +25,8 @@ export function limpiarRespuestas(f) {
     Number.isInteger(vasosAgua) && enRango(vasosAgua, 0, 30) &&
     enRango(horasPantalla, 0, 24) &&
     Number.isInteger(diasDesayuno) && enRango(diasDesayuno, 0, 7) &&
-    f.vasosAgua !== "" && f.horasPantalla !== "" && f.diasDesayuno !== "";
+    enRango(horasLectura, 0, 24) &&
+    f.vasosAgua !== "" && f.horasPantalla !== "" && f.diasDesayuno !== "" && f.horasLectura !== "";
 
   if (!ok) return null;
   return {
@@ -34,6 +36,7 @@ export function limpiarRespuestas(f) {
     vasosAgua,
     alimentacion: f.alimentacion,
     horasPantalla,
+    horasLectura,
     diasActividad: f.diasActividad,
     diasDesayuno,
     celularAntesDormir: f.celularAntesDormir,

@@ -2,16 +2,16 @@ import { useRef, useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { explicarErrorFirebase } from "../diagnostico";
-import { ROLES, EDADES, ALIMENTACION, ACTIVIDAD, CELULAR, limpiarRespuestas } from "../validacion";
+import { ROLES, CURSOS, EDADES, ALIMENTACION, ACTIVIDAD, CELULAR, limpiarRespuestas } from "../validacion";
 
 const INICIAL = {
-  rol: "", rangoEdad: "", horasSueno: 8, vasosAgua: "",
+  rol: "", curso: "", rangoEdad: "", horasSueno: 8, vasosAgua: "",
   alimentacion: "", horasPantalla: "", horasLectura: "", diasActividad: "",
   diasDesayuno: "", celularAntesDormir: "",
 };
 const DESAYUNO = ["0", "1", "2", "3", "4", "5", "6", "7"];
 // Campos que la persona tiene que completar (el sueño ya viene con un valor inicial en el control deslizante).
-const REQUERIDOS = ["rol", "rangoEdad", "vasosAgua", "alimentacion", "horasPantalla", "horasLectura", "diasActividad", "diasDesayuno", "celularAntesDormir"];
+const REQUERIDOS = ["rol", "curso", "rangoEdad", "vasosAgua", "alimentacion", "horasPantalla", "horasLectura", "diasActividad", "diasDesayuno", "celularAntesDormir"];
 const MIN_MS = 4000;       // un humano tarda más que esto en completar el formulario
 const COOLDOWN_MS = 30000; // espera entre intentos fallidos
 
@@ -135,6 +135,13 @@ export default function EncuestaForm({ t, onSuccess }) {
 
       <Pregunta id="q-rol" emoji="👋" tono="indigo" titulo={t.rol}>
         <Opciones id="q-rol" name="rol" valores={ROLES} valor={form.rol} onChange={onChange} op={op} />
+      </Pregunta>
+
+      <Pregunta id="q-curso" emoji="🏫" tono="emerald" titulo={t.curso1}>
+        <Opciones id="q-curso" name="curso" valores={CURSOS} valor={form.curso} onChange={onChange} op={op} layout="wrap" />
+        <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-100">
+          <span aria-hidden="true">💡 </span>{t.cursoAyuda}
+        </p>
       </Pregunta>
 
       <Pregunta id="q-edad" emoji="🎂" tono="fuchsia" titulo={t.edad}>

@@ -96,7 +96,7 @@ function GraficosPromedios({ t }) {
       <Titulo emoji="📈">Gráficos</Titulo>
       <div className="grid gap-4 md:grid-cols-2">
         {METRICAS.map((m) => {
-          const valores = [...t.roles.filas, ...t.edades.filas].map((f) => f.medias[m.key]).filter((v) => v !== null);
+          const valores = [...t.roles.filas, ...t.cursos.filas, ...t.edades.filas].map((f) => f.medias[m.key]).filter((v) => v !== null);
           const max = m.pct ? 100 : Math.max(1, ...valores);
           const { emoji, barra } = ADORNO[m.key];
           return (
@@ -106,6 +106,7 @@ function GraficosPromedios({ t }) {
               </h4>
               <div className="space-y-4">
                 <Barras titulo="Por rol" filas={t.roles.filas} metrica={m} max={max} color={barra} />
+                <Barras titulo="Por curso" filas={t.cursos.filas} metrica={m} max={max} color={barra} />
                 <Barras titulo="Por edad" filas={t.edades.filas} metrica={m} max={max} color={barra} />
               </div>
             </div>
@@ -143,7 +144,7 @@ export default function PanelResultados({ filas }) {
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-xl text-xs text-slate-500">
-            Los roles y las edades con menos de {MIN_GRUPO} respuestas no se muestran ni se exportan, y sus respuestas no entran en ningún total.
+            Los roles, cursos y edades con menos de {MIN_GRUPO} respuestas no se muestran ni se exportan, y sus respuestas no entran en ningún total.
           </p>
           <button type="button" disabled={t.total.n === 0} onClick={() => descargarCsv(t)} className={btnPrimario}>
             Descargar planilla (CSV)
@@ -172,6 +173,7 @@ export default function PanelResultados({ filas }) {
               <>
                 <Tabla emoji="🌎" titulo="Total" filas={[{ grupo: "Todos", ...t.total }]} />
                 <Tabla emoji="🧑‍🎓" titulo="Por rol" filas={t.roles.filas} ocultos={t.roles.ocultos} />
+                <Tabla emoji="🏫" titulo="Por curso (1ro A y 1ro B)" filas={t.cursos.filas} ocultos={t.cursos.ocultos} />
                 <Tabla emoji="🎂" titulo="Por rango de edad" filas={t.edades.filas} ocultos={t.edades.ocultos} />
                 <GraficosPromedios t={t} />
               </>

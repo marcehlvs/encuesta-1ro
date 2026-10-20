@@ -1,4 +1,4 @@
-import { ROLES, EDADES } from "./validacion.js";
+import { ROLES, EDADES, CURSOS_PANEL, cursoDe } from "./validacion.js";
 
 // Un grupo con menos respuestas que esto no se muestra ni se exporta (así nadie es identificable).
 export const MIN_GRUPO = 5;
@@ -32,15 +32,17 @@ const contar = (filas, campo) => {
   return c;
 };
 
-// Quita las respuestas de roles o edades con menos de `min` respuestas y repite hasta que todos los grupos
+// Quita las respuestas de roles, edades o cursos con menos de `min` respuestas y repite hasta que todos los grupos
 // que quedan tengan `min` o más. Así el total es siempre la suma de los grupos mostrados y nadie puede
 // deducir a un grupo chico restando (total - grupos visibles).
 export function conjuntoPublicable(rows, min = MIN_GRUPO) {
-  let actual = rows.filter((r) => ROLES.includes(r.rol) && EDADES.includes(r.rangoEdad));
+  let actual = rows.filter((r) => ROLES.includes(r.rol) && EDADES.includes(r.rangoEdad) && CURSOS_PANEL.includes(cursoDe(r)));
   for (;;) {
     const cRol = contar(actual, "rol");
     const cEdad = contar(actual, "rangoEdad");
-    const siguiente = actual.filter((r) => cRol.get(r.rol) >= min && cEdad.get(r.rangoEdad) >= min);
+    const cCurso = new Map();
+    for (const r of actual) cCurso.set(cursoDe(r), (cCurso.get(cursoDe(r)) ?? 0) + 1);
+    const siguiente = actual.filter((r) => cRol.get(r.rol) >= min && cEdad.get(r.rangoEdad) >= min && cCurso.get(cursoDe(r)) >= min);
     if (siguiente.length === actual.length) return { publicables: siguiente, excluidas: rows.length - siguiente.length };
     actual = siguiente;
   }
@@ -52,12 +54,12 @@ export function armarTablas(rows, min = MIN_GRUPO) {
     n: filas.length,
     medias: Object.fromEntries(METRICAS.map((m) => [m.key, media(filas, m, min)])),
   });
-  const dimension = (campo, orden) => {
+  const dimension = (valorDe, orden) => {
     const filas = orden
-      .map((grupo) => ({ grupo, ...resumen(publicables.filter((r) => r[campo] === grupo)) }))
+      .map((grupo) => ({ grupo, ...resumen(publicables.filter((r) => valorDe(r) === grupo)) }))
       .filter((g) => g.n > 0);
     // Grupos que respondieron pero no se muestran: se avisa cuáles, nunca cuántas respuestas tienen.
-    const ocultos = orden.filter((g) => rows.some((r) => r[campo] === g) && !filas.some((f) => f.grupo === g));
+    const ocultos = orden.filter((g) => rows.some((r) => valorDe(r) === g) && !filas.some((f) => f.grupo === g));
     return { filas, ocultos };
   };
   return {
@@ -65,8 +67,9 @@ export function armarTablas(rows, min = MIN_GRUPO) {
     incluidas: publicables.length,
     excluidas,
     total: resumen(publicables),
-    roles: dimension("rol", ROLES),
-    edades: dimension("rangoEdad", EDADES),
+    roles: dimension((r) => r.rol, ROLES),
+    cursos: dimension(cursoDe, CURSOS_PANEL),
+    edades: dimension((r) => r.rangoEdad, EDADES),
   };
 }
 
@@ -84,6 +87,7 @@ export function aCsv(t) {
   const filas = [
     fila("Total", "Todos los grupos incluidos", t.total),
     ...t.roles.filas.map((g) => fila("Rol", g.grupo, g)),
+    ...t.cursos.filas.map((g) => fila("Curso", g.grupo, g)),
     ...t.edades.filas.map((g) => fila("Edad", g.grupo, g)),
   ];
   return "\uFEFF" + [cabecera, ...filas].map((f) => f.map(celda).join(";")).join("\r\n");

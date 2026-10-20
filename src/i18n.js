@@ -23,6 +23,8 @@ export const TEXTOS = {
     ],
     consiento: "Leí este aviso y quiero participar.",
     rol: "¿Cuál es tu rol?",
+    curso1: "¿A qué curso vas?",
+    cursoAyuda: "Si no sos alumno o alumna de 1ro A ni de 1ro B, elegí “Otro o no aplica”.",
     edad: "¿En qué rango de edad estás?",
     sueno: "¿Cuántas horas dormís, en promedio?",
     agua: "¿Cuántos vasos de agua tomás por día?",
@@ -51,6 +53,7 @@ export const TEXTOS = {
     errEspera: "Esperá unos segundos antes de volver a intentar.",
     errEnvio: "No se pudo enviar. Revisá tu conexión y volvé a intentar.",
     opciones: {
+      "Otro o no aplica": "Otro o no aplica",
       "Menos de 12": "Menos de 12", "12 a 14": "12 a 14", "15 a 17": "15 a 17", "18 a 25": "18 a 25",
       "26 a 40": "26 a 40", "41 a 60": "41 a 60", "Más de 60": "Más de 60",
       "0": "0 días", "1-2": "1 a 2 días", "3": "3 días (ej. Lunes, Miércoles y Viernes)", "4+": "4 o más días",
@@ -71,6 +74,8 @@ export const TEXTOS = {
     ],
     consiento: "I have read this notice and I want to take part.",
     rol: "What is your role?",
+    curso1: "Which class are you in?",
+    cursoAyuda: "If you are not a student of 1ro A or 1ro B, choose “Other / not applicable”.",
     edad: "What is your age range?",
     sueno: "How many hours do you sleep, on average?",
     agua: "How many glasses of water do you drink per day?",
@@ -100,6 +105,7 @@ export const TEXTOS = {
     errEnvio: "Could not submit. Check your connection and try again.",
     opciones: {
       Alumno: "Student", Profesor: "Teacher", Preceptor: "Preceptor (student supervisor)", Directivo: "School administrator",
+      "1ro A": "1st year A", "1ro B": "1st year B", "Otro o no aplica": "Other / not applicable",
       "Menos de 12": "Under 12", "12 a 14": "12 to 14", "15 a 17": "15 to 17", "18 a 25": "18 to 25",
       "26 a 40": "26 to 40", "41 a 60": "41 to 60", "Más de 60": "Over 60",
       "Omnívora": "Omnivore", Vegetariana: "Vegetarian", Vegana: "Vegan", Otra: "Other",

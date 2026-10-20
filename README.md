@@ -14,7 +14,7 @@ La encuesta está en `/` y el panel docente en `/panel`.
 - Con App Check activo, en desarrollo aparece un token de depuración en la consola del navegador: registralo en App Check > Aplicaciones > Tokens de depuración.
 
 ## Panel de resultados (`/panel`)
-Muestra promedios de sueño, agua, pantalla, actividad, desayuno y uso del celular antes de dormir por rol y por rango de edad, con gráficos y descarga de planilla (CSV para Excel/Sheets).
+Muestra promedios de sueño, agua, pantalla, actividad, desayuno y uso del celular antes de dormir por rol, por curso (1ro A / 1ro B) y por rango de edad, con gráficos y descarga de planilla (CSV para Excel/Sheets).
 
 **Alta de docentes (una vez por persona):**
 1. Authentication > Método de acceso: activá **Correo electrónico/contraseña**.
@@ -23,7 +23,7 @@ Muestra promedios de sueño, agua, pantalla, actividad, desayuno y uso del celul
 
 Quien no tenga su documento en `docentes` no puede leer respuestas, aunque logre crear una cuenta. Para dar de baja a alguien, borrá su documento en `docentes`.
 
-**Privacidad:** no se muestran ni se exportan los roles ni las edades con menos de 5 respuestas (`MIN_GRUPO` en `src/agregacion.js`), y esas respuestas tampoco entran en los totales. La planilla solo contiene datos agregados. Este filtro se aplica en el navegador del docente: protege lo que se ve y se descarga, pero quien tenga acceso a la consola de Firebase sigue viendo las respuestas individuales.
+**Privacidad:** no se muestran ni se exportan los roles, cursos ni edades con menos de 5 respuestas (`MIN_GRUPO` en `src/agregacion.js`), y esas respuestas tampoco entran en los totales. La planilla solo contiene datos agregados. Este filtro se aplica en el navegador del docente: protege lo que se ve y se descarga, pero quien tenga acceso a la consola de Firebase sigue viendo las respuestas individuales.
 
 **Borrar datos:** la tarjeta roja del final del panel elimina todas las respuestas, previa confirmación escribiendo `BORRAR`. No se puede deshacer, y cualquier persona de `docentes` puede hacerlo. Requiere que `firestore.rules` tenga `allow delete: if esDocente()`.
 
@@ -49,6 +49,8 @@ Cada pregunta vive en cinco archivos. Según lo que quieras hacer:
 5. Para verla en el panel y en el CSV: `src/agregacion.js` (una entrada en `METRICAS`) y `src/components/PanelResultados.jsx` (emoji y color en `ADORNO`).
 
 **Orden de publicación:** primero las reglas (Firestore > Reglas > Publicar) y después `npm run build && firebase deploy --only hosting`.
+
+**Curso (1ro A / 1ro B):** la pregunta `curso` guarda `1ro A`, `1ro B` u `Otro o no aplica`. Las respuestas anteriores a esta pregunta no tienen el campo y el panel las agrupa como «Sin dato de curso» (si son menos de 5 quedan excluidas por privacidad).
 
 **Ojo con las opciones ya usadas:** si cambiás o quitás un valor de `ROLES` o `EDADES` (por ejemplo, "12 a 14" por "12 a 13"), las respuestas viejas con el valor anterior dejan de aparecer en el panel y cuentan como excluidas. Mejor agregar opciones nuevas que renombrar las existentes, o borrar los datos antes de cambiarlas.
 

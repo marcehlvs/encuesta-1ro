@@ -1,5 +1,5 @@
 import { MIN_GRUPO, conjuntoPublicable } from "./agregacion.js";
-import { ALIMENTACION, ACTIVIDAD, CELULAR, ROLES, EDADES } from "./validacion.js";
+import { ALIMENTACION, ACTIVIDAD, CELULAR, ROLES, EDADES, CURSOS_PANEL, cursoDe } from "./validacion.js";
 
 // Variables numéricas: las medidas de posición y dispersión se calculan sobre sus valores.
 export const NUMERICAS = [
@@ -12,6 +12,7 @@ export const NUMERICAS = [
 // Variables por categorías: se muestran con barras y gráfico circular.
 export const CATEGORICAS = [
   { key: "rol", label: "Rol", emoji: "🧑‍🎓", orden: ROLES },
+  { key: "curso", label: "Curso", emoji: "🏫", orden: CURSOS_PANEL },
   { key: "rangoEdad", label: "Rango de edad", emoji: "🎂", orden: EDADES },
   { key: "alimentacion", label: "Tipo de alimentación", emoji: "🥗", orden: ALIMENTACION },
   { key: "diasActividad", label: "Actividad física (días/sem)", emoji: "🏃", orden: ACTIVIDAD },
@@ -65,7 +66,8 @@ export function histograma(valores, paso) {
 // se agrupan en "Otras respuestas", para no exponer conteos muy chicos.
 export function frecuencias(filas, campo, orden, min = MIN_GRUPO) {
   const c = new Map(orden.map((g) => [g, 0]));
-  for (const r of filas) if (c.has(r[campo])) c.set(r[campo], c.get(r[campo]) + 1);
+  const valor = (r) => (campo === "curso" ? cursoDe(r) : r[campo]);
+  for (const r of filas) if (c.has(valor(r))) c.set(valor(r), c.get(valor(r)) + 1);
   const grandes = [...c].filter(([, n]) => n >= min).map(([nombre, n]) => ({ nombre, n }));
   const otras = [...c].filter(([, n]) => n > 0 && n < min).reduce((a, [, n]) => a + n, 0);
   return otras > 0 ? [...grandes, { nombre: "Otras respuestas", n: otras }] : grandes;

@@ -1,0 +1,96 @@
+From aa0591eea41b289dbd8fc2a9b39d29d979ebf750 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 30 Oct 2026 23:19:53 +0000
+Subject: [PATCH] Aviso de privacidad coherente con el reinicio y descarga de
+ CSV antes de reiniciar
+
+---
+ src/components/BorrarDatos.jsx     | 7 ++++++-
+ src/components/Panel.jsx           | 2 +-
+ src/components/PanelResultados.jsx | 2 +-
+ src/i18n.js                        | 4 ++--
+ 4 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/src/components/BorrarDatos.jsx b/src/components/BorrarDatos.jsx
+index 6ccb555..30acad8 100644
+--- a/src/components/BorrarDatos.jsx
++++ b/src/components/BorrarDatos.jsx
+@@ -2,6 +2,8 @@ import { useState } from "react";
+ import { deleteDoc } from "firebase/firestore";
+ import { explicarErrorFirebase } from "../diagnostico";
+ import { nuevaRonda } from "../ronda";
++import { armarTablas } from "../agregacion";
++import { descargarCsv } from "./PanelResultados";
+ import { btnPeligro, btnSecundario } from "./ui";
+ 
+ const PALABRA = "BORRAR";
+@@ -10,7 +12,7 @@ const PALABRA = "BORRAR";
+ const LOTE = 20;
+ 
+ 
+-export default function BorrarDatos({ refs, onTerminado }) {
++export default function BorrarDatos({ refs, filas = [], onTerminado }) {
+   const [abierto, setAbierto] = useState(false);
+   const [texto, setTexto] = useState("");
+   const [estado, setEstado] = useState("quieto"); // quieto | borrando | listo | error
+@@ -118,6 +120,9 @@ export default function BorrarDatos({ refs, onTerminado }) {
+           )}
+ 
+           <div className="flex flex-wrap gap-2">
++            <button type="button" onClick={() => descargarCsv(armarTablas(filas))} disabled={ocupado || filas.length === 0} className={btnSecundario}>
++              Descargar CSV antes
++            </button>
+             <button type="button" onClick={borrar} disabled={!confirmado || ocupado} className={btnPeligro}>
+               {ocupado ? "Reiniciando…" : "Borrar y reiniciar"}
+             </button>
+diff --git a/src/components/Panel.jsx b/src/components/Panel.jsx
+index 2cd567f..ed0ef9c 100644
+--- a/src/components/Panel.jsx
++++ b/src/components/Panel.jsx
+@@ -130,7 +130,7 @@ export default function Panel() {
+       <div className="space-y-6">
+         <PanelResultados filas={filas} />
+         <Compartir />
+-        <BorrarDatos refs={refs} onTerminado={() => cargar(user, true)} />
++        <BorrarDatos refs={refs} filas={filas} onTerminado={() => cargar(user, true)} />
+       </div>
+     );
+ 
+diff --git a/src/components/PanelResultados.jsx b/src/components/PanelResultados.jsx
+index 8127256..7f52d2e 100644
+--- a/src/components/PanelResultados.jsx
++++ b/src/components/PanelResultados.jsx
+@@ -117,7 +117,7 @@ function GraficosPromedios({ t }) {
+   );
+ }
+ 
+-function descargarCsv(t) {
++export function descargarCsv(t) {
+   const blob = new Blob([aCsv(t)], { type: "text/csv;charset=utf-8" });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement("a");
+diff --git a/src/i18n.js b/src/i18n.js
+index dbb939e..046b171 100644
+--- a/src/i18n.js
++++ b/src/i18n.js
+@@ -18,7 +18,7 @@ export const TEXTOS = {
+     aviso: [
+       "Es anónima y voluntaria: no pedimos nombre, DNI, correo ni ningún dato que te identifique.",
+       "Usamos las respuestas solo para conocer los hábitos de salud de la comunidad del instituto. Los resultados se muestran en conjunto (promedios por rol y por edad) y no se muestran grupos de menos de 5 respuestas.",
+-      "Las respuestas se guardan en servidores de Google (Firebase). Como son anónimas, una vez enviadas no se pueden borrar ni modificar.",
++      "Las respuestas se guardan en servidores de Google (Firebase). Como son anónimas, no se pueden modificar ni borrar de forma individual una vez enviadas; solo el equipo docente puede eliminar todas las respuestas en conjunto.",
+       "Si sos menor de edad, hablá con tu familia o con un adulto responsable antes de participar.",
+     ],
+     consiento: "Leí este aviso y quiero participar.",
+@@ -69,7 +69,7 @@ export const TEXTOS = {
+     aviso: [
+       "It is anonymous and voluntary: we do not ask for your name, ID number, email or anything that identifies you.",
+       "We use the answers only to learn about the health habits of the school community. Results are shown as a whole (averages by role and by age) and groups with fewer than 5 answers are never shown.",
+-      "Answers are stored on Google servers (Firebase). Because they are anonymous, they cannot be deleted or edited once submitted.",
++      "Answers are stored on Google servers (Firebase). Because they are anonymous, they cannot be edited or deleted individually once submitted; only the teaching team can delete all answers at once.",
+       "If you are under 18, talk to your family or a responsible adult before taking part.",
+     ],
+     consiento: "I have read this notice and I want to take part.",
+-- 
+2.43.0
+

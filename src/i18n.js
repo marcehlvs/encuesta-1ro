@@ -18,7 +18,7 @@ export const TEXTOS = {
     aviso: [
       "Es anónima y voluntaria: no pedimos nombre, DNI, correo ni ningún dato que te identifique.",
       "Usamos las respuestas solo para conocer los hábitos de salud de la comunidad del instituto. Los resultados se muestran en conjunto (promedios por rol y por edad) y no se muestran grupos de menos de 5 respuestas.",
-      "Las respuestas se guardan en servidores de Google (Firebase). Como son anónimas, una vez enviadas no se pueden borrar ni modificar.",
+      "Las respuestas se guardan en servidores de Google (Firebase). Como son anónimas, no se pueden modificar ni borrar de forma individual una vez enviadas; solo el equipo docente puede eliminar todas las respuestas en conjunto.",
       "Si sos menor de edad, hablá con tu familia o con un adulto responsable antes de participar.",
     ],
     consiento: "Leí este aviso y quiero participar.",
@@ -69,7 +69,7 @@ export const TEXTOS = {
     aviso: [
       "It is anonymous and voluntary: we do not ask for your name, ID number, email or anything that identifies you.",
       "We use the answers only to learn about the health habits of the school community. Results are shown as a whole (averages by role and by age) and groups with fewer than 5 answers are never shown.",
-      "Answers are stored on Google servers (Firebase). Because they are anonymous, they cannot be deleted or edited once submitted.",
+      "Answers are stored on Google servers (Firebase). Because they are anonymous, they cannot be edited or deleted individually once submitted; only the teaching team can delete all answers at once.",
       "If you are under 18, talk to your family or a responsible adult before taking part.",
     ],
     consiento: "I have read this notice and I want to take part.",

@@ -130,7 +130,7 @@ export default function Panel() {
       <div className="space-y-6">
         <PanelResultados filas={filas} />
         <Compartir />
-        <BorrarDatos refs={refs} onTerminado={() => cargar(user, true)} />
+        <BorrarDatos refs={refs} filas={filas} onTerminado={() => cargar(user, true)} />
       </div>
     );
 

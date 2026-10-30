@@ -117,7 +117,7 @@ function GraficosPromedios({ t }) {
   );
 }
 
-function descargarCsv(t) {
+export function descargarCsv(t) {
   const blob = new Blob([aCsv(t)], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

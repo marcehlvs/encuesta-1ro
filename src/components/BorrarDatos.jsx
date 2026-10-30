@@ -2,6 +2,8 @@ import { useState } from "react";
 import { deleteDoc } from "firebase/firestore";
 import { explicarErrorFirebase } from "../diagnostico";
 import { nuevaRonda } from "../ronda";
+import { armarTablas } from "../agregacion";
+import { descargarCsv } from "./PanelResultados";
 import { btnPeligro, btnSecundario } from "./ui";
 
 const PALABRA = "BORRAR";
@@ -10,7 +12,7 @@ const PALABRA = "BORRAR";
 const LOTE = 20;
 
 
-export default function BorrarDatos({ refs, onTerminado }) {
+export default function BorrarDatos({ refs, filas = [], onTerminado }) {
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState("");
   const [estado, setEstado] = useState("quieto"); // quieto | borrando | listo | error
@@ -118,6 +120,9 @@ export default function BorrarDatos({ refs, onTerminado }) {
           )}
 
           <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => descargarCsv(armarTablas(filas))} disabled={ocupado || filas.length === 0} className={btnSecundario}>
+              Descargar CSV antes
+            </button>
             <button type="button" onClick={borrar} disabled={!confirmado || ocupado} className={btnPeligro}>
               {ocupado ? "Reiniciando…" : "Borrar y reiniciar"}
             </button>

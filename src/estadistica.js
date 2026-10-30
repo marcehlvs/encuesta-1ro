@@ -43,11 +43,16 @@ export function resumenNumerico(valores, min = MIN_GRUPO) {
   const varianza = n > 1 ? v.reduce((a, x) => a + (x - media) ** 2, 0) / (n - 1) : 0; // muestral (n − 1)
   const desvio = Math.sqrt(varianza);
   const ric = q3 - q1;
-  const atipicos = v.filter((x) => x < q1 - 1.5 * ric || x > q3 + 1.5 * ric).length;
+  // Regla de Tukey: es atípico lo que queda fuera de [Q1 − 1,5·RIC ; Q3 + 1,5·RIC].
+  const limInf = q1 - 1.5 * ric;
+  const limSup = q3 + 1.5 * ric;
+  const atipicosBajos = v.filter((x) => x < limInf).length;
+  const atipicosAltos = v.filter((x) => x > limSup).length;
+  const atipicos = atipicosBajos + atipicosAltos;
   return {
     n, media, mediana, modas, min: v[0], max: v[n - 1], q1, q3,
     rango: v[n - 1] - v[0], ric, varianza, desvio,
-    cv: media !== 0 ? (desvio / Math.abs(media)) * 100 : null, atipicos, valores: v,
+    cv: media !== 0 ? (desvio / Math.abs(media)) * 100 : null, atipicos, atipicosBajos, atipicosAltos, limInf, limSup, valores: v,
   };
 }
 

@@ -15,6 +15,8 @@ export const TEXTOS = {
     subtitulo: "Son 2 minutos y es anónima: no guardamos tu nombre ni tus datos personales.",
     idioma: "Idioma",
     avisoTitulo: "Antes de empezar",
+    cargando: "Cargando…",
+    saltar: "Saltar al contenido",
     aviso: [
       "Es anónima y voluntaria: no pedimos nombre, DNI, correo ni ningún dato que te identifique.",
       "Usamos las respuestas solo para conocer los hábitos de salud de la comunidad del instituto. Los resultados se muestran en conjunto (promedios por rol y por edad) y no se muestran grupos de menos de 5 respuestas.",
@@ -66,6 +68,8 @@ export const TEXTOS = {
     subtitulo: "It takes 2 minutes and it is anonymous: we do not store your name or any personal data.",
     idioma: "Language",
     avisoTitulo: "Before you start",
+    cargando: "Loading…",
+    saltar: "Skip to content",
     aviso: [
       "It is anonymous and voluntary: we do not ask for your name, ID number, email or anything that identifies you.",
       "We use the answers only to learn about the health habits of the school community. Results are shown as a whole (averages by role and by age) and groups with fewer than 5 answers are never shown.",

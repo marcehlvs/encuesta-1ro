@@ -23,8 +23,8 @@ const ADORNO = {
 function Dato({ valor, etiqueta, fondo }) {
   return (
     <div className={`rounded-2xl p-4 ${fondo}`}>
-      <p className="text-3xl font-extrabold text-slate-900">{valor}</p>
-      <p className="mt-1 text-xs font-semibold text-slate-600">{etiqueta}</p>
+      <p className="text-3xl font-extrabold text-fg">{valor}</p>
+      <p className="mt-1 text-xs font-semibold text-fg-soft">{etiqueta}</p>
     </div>
   );
 }
@@ -33,9 +33,9 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
   return (
     <section className={tarjeta}>
       <Titulo emoji={emoji}>{titulo}</Titulo>
-      <div className="overflow-x-auto rounded-2xl ring-1 ring-slate-100">
+      <div className="overflow-x-auto rounded-2xl ring-1 ring-line">
         <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="bg-indigo-50 text-indigo-950">
+          <thead className="bg-brand-soft text-brand-text">
             <tr>
               <th scope="col" className="px-3 py-3 font-semibold">Grupo</th>
               <th scope="col" className="px-3 py-3 text-right font-semibold">Resp.</th>
@@ -46,11 +46,11 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
           </thead>
           <tbody>
             {filas.map((f) => (
-              <tr key={f.grupo} className="border-t border-slate-100 even:bg-slate-50/60">
-                <th scope="row" className="px-3 py-2.5 font-semibold text-slate-900">{f.grupo}</th>
-                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{f.n}</td>
+              <tr key={f.grupo} className="border-t border-line even:bg-surface-2/60">
+                <th scope="row" className="px-3 py-2.5 font-semibold text-fg">{f.grupo}</th>
+                <td className="px-3 py-2.5 text-right tabular-nums text-fg-soft">{f.n}</td>
                 {METRICAS.map((m) => (
-                  <td key={m.key} className="px-3 py-2.5 text-right tabular-nums text-slate-800">{fmt(f.medias[m.key], m)}</td>
+                  <td key={m.key} className="px-3 py-2.5 text-right tabular-nums text-fg">{fmt(f.medias[m.key], m)}</td>
                 ))}
               </tr>
             ))}
@@ -58,7 +58,7 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
         </table>
       </div>
       {ocultos.length > 0 && (
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-muted">
           No se muestran (menos de {MIN_GRUPO} respuestas): {ocultos.join(", ")}.
         </p>
       )}
@@ -69,19 +69,19 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
 function Barras({ titulo, filas, metrica, max, color }) {
   return (
     <div>
-      <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</h5>
+      <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{titulo}</h5>
       <ul className="space-y-2">
         {filas.map(({ grupo, medias }) => {
           const v = medias[metrica.key];
           return (
             <li key={grupo} className="flex items-center gap-2 text-sm">
-              <span className="w-24 shrink-0 text-slate-700">{grupo}</span>
-              <div className="h-3 flex-1 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
+              <span className="w-24 shrink-0 text-fg-soft">{grupo}</span>
+              <div className="h-3 flex-1 overflow-hidden rounded-full bg-surface ring-1 ring-line">
                 {v !== null && (
                   <div className={`h-3 rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(100, (v / max) * 100)}%` }} />
                 )}
               </div>
-              <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-slate-900">{fmt(v, metrica)}</span>
+              <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-fg">{fmt(v, metrica)}</span>
             </li>
           );
         })}
@@ -100,8 +100,8 @@ function GraficosPromedios({ t }) {
           const max = m.pct ? 100 : Math.max(1, ...valores);
           const { emoji, barra } = ADORNO[m.key];
           return (
-            <div key={m.key} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-              <h4 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+            <div key={m.key} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
+              <h4 className="mb-3 flex items-center gap-2 font-semibold text-fg">
                 <span aria-hidden="true">{emoji}</span>{m.label}
               </h4>
               <div className="space-y-4">
@@ -138,12 +138,12 @@ export default function PanelResultados({ filas }) {
     <div className="space-y-6">
       <section className={tarjeta}>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Dato valor={t.recibidas} etiqueta="Respuestas recibidas" fondo="bg-indigo-50" />
-          <Dato valor={t.incluidas} etiqueta="Incluidas en los cálculos" fondo="bg-emerald-50" />
-          <Dato valor={t.excluidas} etiqueta="Excluidas por privacidad" fondo="bg-amber-50" />
+          <Dato valor={t.recibidas} etiqueta="Respuestas recibidas" fondo="bg-brand-soft" />
+          <Dato valor={t.incluidas} etiqueta="Incluidas en los cálculos" fondo="bg-ok-soft" />
+          <Dato valor={t.excluidas} etiqueta="Excluidas por privacidad" fondo="bg-warn-soft" />
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-xl text-xs text-slate-500">
+          <p className="max-w-xl text-xs text-muted">
             Los roles, cursos y edades con menos de {MIN_GRUPO} respuestas no se muestran ni se exportan, y sus respuestas no entran en ningún total.
           </p>
           <button type="button" disabled={t.total.n === 0} onClick={() => descargarCsv(t)} className={btnPrimario}>
@@ -153,7 +153,7 @@ export default function PanelResultados({ filas }) {
       </section>
 
       {t.total.n === 0 ? (
-        <p role="status" className={`${tarjeta} text-slate-700`}>
+        <p role="status" className={`${tarjeta} text-fg-soft`}>
           <span aria-hidden="true">⏳ </span>
           Todavía no hay resultados para mostrar: hace falta que cada rol y cada rango de edad incluido tenga al menos {MIN_GRUPO} respuestas.
         </p>
@@ -163,7 +163,7 @@ export default function PanelResultados({ filas }) {
             {PESTANAS.map(([id, texto]) => (
               <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={pestana === id} aria-controls={`panel-${id}`}
                 onClick={() => setPestana(id)}
-                className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${pestana === id ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/40" : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-indigo-50"}`}>
+                className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${pestana === id ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/40" : "bg-surface text-fg-soft shadow-sm ring-1 ring-line hover:bg-brand-soft"}`}>
                 {texto}
               </button>
             ))}

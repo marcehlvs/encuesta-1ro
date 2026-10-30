@@ -4,7 +4,7 @@ import { explicarErrorFirebase } from "../diagnostico";
 import { nuevaRonda } from "../ronda";
 import { armarTablas } from "../agregacion";
 import { descargarCsv } from "./PanelResultados";
-import { btnPeligro, btnSecundario } from "./ui";
+import { Aviso, btnPeligro, btnSecundario } from "./ui";
 
 const PALABRA = "BORRAR";
 // Se borra de a 20 pedidos en paralelo: cada borrado se valida por separado en las reglas de Firestore,
@@ -66,20 +66,18 @@ export default function BorrarDatos({ refs, filas = [], onTerminado }) {
   };
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-lg shadow-red-100/60 ring-1 ring-red-200">
-      <h3 className="flex items-center gap-2 text-lg font-bold text-red-800">
+    <section className="rounded-3xl bg-surface p-5 shadow-card ring-1 ring-danger-line">
+      <h3 className="flex items-center gap-2 text-lg font-bold text-danger">
         <span aria-hidden="true">🗑️</span>Reiniciar encuesta
       </h3>
 
       {estado === "listo" && (
-        <p role="status" className="mt-3 rounded-2xl bg-green-50 px-4 py-2.5 text-sm text-green-800 ring-1 ring-green-100">
-          Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.
-        </p>
+        <Aviso tono="ok" icono="✅" className="mt-3">Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.</Aviso>
       )}
 
       {!abierto ? (
         <div className="mt-2 space-y-3">
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-fg-soft">
             Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos,
             y permite que quienes ya participaron puedan responder otra vez. No se puede deshacer.
           </p>
@@ -89,34 +87,34 @@ export default function BorrarDatos({ refs, filas = [], onTerminado }) {
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-100">
+          <div className="rounded-2xl bg-danger-soft px-4 py-3 text-sm text-danger ring-1 ring-danger-line">
             <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva y a habilitar de nuevo la encuesta para todas las personas.</p>
             <p className="mt-1">Si querés conservar los resultados, descargá antes la planilla (CSV) desde la parte de arriba del panel.</p>
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-800">
-              Para confirmar, escribí <code className="rounded bg-slate-100 px-1.5 py-0.5 font-bold">{PALABRA}</code>
+            <span className="mb-1.5 block text-sm font-semibold text-fg">
+              Para confirmar, escribí <code className="rounded bg-surface-2 px-1.5 py-0.5 font-bold">{PALABRA}</code>
             </span>
             <input type="text" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={ocupado}
               autoComplete="off" autoCapitalize="characters" spellCheck="false"
-              className="w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 transition focus:border-red-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-red-100" />
+              className="w-full rounded-2xl border-2 border-line bg-surface-2 px-4 py-3 text-base text-fg transition focus:border-danger focus:bg-surface focus:outline-none focus:ring-4 focus:ring-danger-line" />
           </label>
 
           {ocupado && (
-            <p role="status" className="text-sm text-slate-700">Borrando… {hechos} de {total}</p>
+            <p role="status" className="text-sm text-fg-soft">Borrando… {hechos} de {total}</p>
           )}
           {estado === "errorRonda" && fallo && (
-            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
+            <Aviso tono="error">
               <p>Se borraron {hechos} respuestas, pero no se pudo habilitar de nuevo la encuesta. Volvé a tocar “Borrar y reiniciar”. Código: <code>{fallo.codigo}</code></p>
               <p className="mt-1 text-xs">{fallo.pista} Revisá que hayas publicado las reglas nuevas de <code>firestore.rules</code> (colección <code>config</code>).</p>
-            </div>
+            </Aviso>
           )}
           {estado === "error" && fallo && (
-            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
+            <Aviso tono="error">
               <p>No se pudo terminar el borrado (se borraron {hechos}). Código: <code>{fallo.codigo}</code></p>
               <p className="mt-1 text-xs">{fallo.pista}</p>
-            </div>
+            </Aviso>
           )}
 
           <div className="flex flex-wrap gap-2">

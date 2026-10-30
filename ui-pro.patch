@@ -1,0 +1,1017 @@
+From b04fd11227efafe9074208bd0907eb048bded8d3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 30 Oct 2026 23:42:19 +0000
+Subject: [PATCH] =?UTF-8?q?UI:=20tokens,=20modo=20oscuro,=20responsive,=20?=
+ =?UTF-8?q?accesibilidad=20y=20estados;=20aviso=20completo=20y=20estad?=
+ =?UTF-8?q?=C3=ADstica=20en=20lenguaje=20claro?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ index.html                         |  2 +
+ src/App.jsx                        | 24 ++++++-----
+ src/components/BorrarDatos.jsx     | 30 +++++++-------
+ src/components/Compartir.jsx       |  6 +--
+ src/components/EncuestaForm.jsx    | 63 ++++++++++++++++------------
+ src/components/Estadistica.jsx     | 66 ++++++++++++++++++------------
+ src/components/Graficos.jsx        | 30 +++++++-------
+ src/components/Panel.jsx           | 37 +++++++++--------
+ src/components/PanelResultados.jsx | 42 +++++++++----------
+ src/components/ui.jsx              | 50 +++++++++++++++++-----
+ src/estadistica.js                 |  9 +++-
+ src/i18n.js                        |  4 ++
+ src/index.css                      | 65 +++++++++++++++++++++++++++++
+ 13 files changed, 279 insertions(+), 149 deletions(-)
+
+diff --git a/index.html b/index.html
+index 717fabd..d2532d4 100644
+--- a/index.html
++++ b/index.html
+@@ -3,6 +3,8 @@
+   <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
++    <meta name="color-scheme" content="light dark" />
++    <meta name="theme-color" content="#4f46e5" />
+     <meta name="referrer" content="no-referrer" />
+     <title>Encuesta de hábitos de salud</title>
+   </head>
+diff --git a/src/App.jsx b/src/App.jsx
+index 3de1610..dfbd938 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,6 +1,7 @@
+ import { useEffect, useState } from "react";
+ import EncuestaForm from "./components/EncuestaForm";
+ import { IDIOMAS, TEXTOS, idiomaInicial, guardarIdioma } from "./i18n";
++import { Cargando } from "./components/ui";
+ import { rondaLocal, guardarRondaLocal, rondaRemota } from "./ronda";
+ 
+ export default function App() {
+@@ -40,12 +41,14 @@ export default function App() {
+   };
+ 
+   return (
+-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-emerald-50 px-4 py-8">
++    <>
++    <a href="#contenido" className="saltar rounded-2xl bg-surface px-4 py-2 font-semibold text-brand-text shadow-card">{t.saltar}</a>
++    <main id="contenido" className="relative min-h-screen overflow-hidden fondo-app px-4 py-8">
+       {/* Manchas de color de fondo (decorativas) */}
+       <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
+       <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-emerald-300/30 blur-3xl" />
+ 
+-      <div className="relative mx-auto w-full max-w-lg">
++      <div className="relative mx-auto w-full max-w-lg md:max-w-3xl">
+         <div role="group" aria-label={t.idioma} className="mb-6 flex justify-end gap-2">
+           {IDIOMAS.map(({ code, label }) => (
+             <button key={code} type="button" onClick={() => cambiarIdioma(code)}
+@@ -53,7 +56,7 @@ export default function App() {
+               className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                 idioma === code
+                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/50"
+-                  : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-indigo-50"
++                  : "bg-surface text-fg-soft ring-1 ring-line hover:bg-brand-soft"
+               }`}>
+               {label}
+             </button>
+@@ -61,27 +64,28 @@ export default function App() {
+         </div>
+ 
+         <header className="mb-8 text-center">
+-          <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100">
++          <p className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-brand-text shadow-sm ring-1 ring-brand-line">
+             <span aria-hidden="true">🏫</span>{t.institucion}
+           </p>
+-          <h1 className="mt-4 bg-gradient-to-r from-indigo-700 to-violet-600 bg-clip-text text-3xl font-extrabold leading-tight tracking-tight text-transparent sm:text-4xl">
++          <h1 className="mt-4 bg-gradient-to-r from-brand-text to-brand-2 bg-clip-text text-3xl font-extrabold leading-tight tracking-tight text-transparent sm:text-4xl">
+             {t.titulo}
+           </h1>
+-          <p className="mt-3 text-base text-slate-600">{t.subtitulo}</p>
++          <p className="mt-3 text-base text-fg-soft">{t.subtitulo}</p>
+         </header>
+ 
+         {verificando ? (
+-          <p role="status" className="text-center text-slate-600">…</p>
++          <Cargando texto={t.cargando} />
+         ) : completada ? (
+-          <div role="status" className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-indigo-100 ring-1 ring-slate-100">
++          <div role="status" className="rounded-3xl bg-surface p-8 text-center shadow-xl shadow-card ring-1 ring-line">
+             <p aria-hidden="true" className="text-5xl">🎉</p>
+-            <h2 className="mt-4 text-2xl font-bold text-slate-900">{t.gracias}</h2>
+-            <p className="mt-2 text-slate-600">{t.graciasTxt}</p>
++            <h2 className="mt-4 text-2xl font-bold text-fg">{t.gracias}</h2>
++            <p className="mt-2 text-fg-soft">{t.graciasTxt}</p>
+           </div>
+         ) : (
+           <EncuestaForm t={t} onSuccess={alEnviar} />
+         )}
+       </div>
+     </main>
++    </>
+   );
+ }
+diff --git a/src/components/BorrarDatos.jsx b/src/components/BorrarDatos.jsx
+index 30acad8..1a2cf5f 100644
+--- a/src/components/BorrarDatos.jsx
++++ b/src/components/BorrarDatos.jsx
+@@ -4,7 +4,7 @@ import { explicarErrorFirebase } from "../diagnostico";
+ import { nuevaRonda } from "../ronda";
+ import { armarTablas } from "../agregacion";
+ import { descargarCsv } from "./PanelResultados";
+-import { btnPeligro, btnSecundario } from "./ui";
++import { Aviso, btnPeligro, btnSecundario } from "./ui";
+ 
+ const PALABRA = "BORRAR";
+ // Se borra de a 20 pedidos en paralelo: cada borrado se valida por separado en las reglas de Firestore,
+@@ -66,20 +66,18 @@ export default function BorrarDatos({ refs, filas = [], onTerminado }) {
+   };
+ 
+   return (
+-    <section className="rounded-3xl bg-white p-5 shadow-lg shadow-red-100/60 ring-1 ring-red-200">
+-      <h3 className="flex items-center gap-2 text-lg font-bold text-red-800">
++    <section className="rounded-3xl bg-surface p-5 shadow-card ring-1 ring-danger-line">
++      <h3 className="flex items-center gap-2 text-lg font-bold text-danger">
+         <span aria-hidden="true">🗑️</span>Reiniciar encuesta
+       </h3>
+ 
+       {estado === "listo" && (
+-        <p role="status" className="mt-3 rounded-2xl bg-green-50 px-4 py-2.5 text-sm text-green-800 ring-1 ring-green-100">
+-          Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.
+-        </p>
++        <Aviso tono="ok" icono="✅" className="mt-3">Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.</Aviso>
+       )}
+ 
+       {!abierto ? (
+         <div className="mt-2 space-y-3">
+-          <p className="text-sm text-slate-700">
++          <p className="text-sm text-fg-soft">
+             Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos,
+             y permite que quienes ya participaron puedan responder otra vez. No se puede deshacer.
+           </p>
+@@ -89,34 +87,34 @@ export default function BorrarDatos({ refs, filas = [], onTerminado }) {
+         </div>
+       ) : (
+         <div className="mt-3 space-y-3">
+-          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-100">
++          <div className="rounded-2xl bg-danger-soft px-4 py-3 text-sm text-danger ring-1 ring-danger-line">
+             <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva y a habilitar de nuevo la encuesta para todas las personas.</p>
+             <p className="mt-1">Si querés conservar los resultados, descargá antes la planilla (CSV) desde la parte de arriba del panel.</p>
+           </div>
+ 
+           <label className="block">
+-            <span className="mb-1.5 block text-sm font-semibold text-slate-800">
+-              Para confirmar, escribí <code className="rounded bg-slate-100 px-1.5 py-0.5 font-bold">{PALABRA}</code>
++            <span className="mb-1.5 block text-sm font-semibold text-fg">
++              Para confirmar, escribí <code className="rounded bg-surface-2 px-1.5 py-0.5 font-bold">{PALABRA}</code>
+             </span>
+             <input type="text" value={texto} onChange={(e) => setTexto(e.target.value)} disabled={ocupado}
+               autoComplete="off" autoCapitalize="characters" spellCheck="false"
+-              className="w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 transition focus:border-red-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-red-100" />
++              className="w-full rounded-2xl border-2 border-line bg-surface-2 px-4 py-3 text-base text-fg transition focus:border-danger focus:bg-surface focus:outline-none focus:ring-4 focus:ring-danger-line" />
+           </label>
+ 
+           {ocupado && (
+-            <p role="status" className="text-sm text-slate-700">Borrando… {hechos} de {total}</p>
++            <p role="status" className="text-sm text-fg-soft">Borrando… {hechos} de {total}</p>
+           )}
+           {estado === "errorRonda" && fallo && (
+-            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
++            <Aviso tono="error">
+               <p>Se borraron {hechos} respuestas, pero no se pudo habilitar de nuevo la encuesta. Volvé a tocar “Borrar y reiniciar”. Código: <code>{fallo.codigo}</code></p>
+               <p className="mt-1 text-xs">{fallo.pista} Revisá que hayas publicado las reglas nuevas de <code>firestore.rules</code> (colección <code>config</code>).</p>
+-            </div>
++            </Aviso>
+           )}
+           {estado === "error" && fallo && (
+-            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
++            <Aviso tono="error">
+               <p>No se pudo terminar el borrado (se borraron {hechos}). Código: <code>{fallo.codigo}</code></p>
+               <p className="mt-1 text-xs">{fallo.pista}</p>
+-            </div>
++            </Aviso>
+           )}
+ 
+           <div className="flex flex-wrap gap-2">
+diff --git a/src/components/Compartir.jsx b/src/components/Compartir.jsx
+index 5289083..7aa514c 100644
+--- a/src/components/Compartir.jsx
++++ b/src/components/Compartir.jsx
+@@ -34,17 +34,17 @@ export default function Compartir() {
+       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+         <div className="flex-1 space-y-3">
+           <label className="block">
+-            <span className="mb-1.5 block text-sm font-semibold text-slate-800">Enlace de la encuesta</span>
++            <span className="mb-1.5 block text-sm font-semibold text-fg">Enlace de la encuesta</span>
+             <input type="url" value={url} onChange={(e) => setUrl(e.target.value.trim())} className={inputCls} />
+           </label>
+-          {!esUrl(url) && <p role="alert" className="text-sm text-red-700">Ingresá un enlace que empiece con https://</p>}
++          {!esUrl(url) && <p role="alert" className="text-sm text-danger">Ingresá un enlace que empiece con https://</p>}
+           <button type="button" onClick={copiar} disabled={!esUrl(url)} className={btnSecundario}>
+             {copiado ? "¡Copiado!" : "Copiar enlace"}
+           </button>
+         </div>
+         {qr && (
+           <div className="flex flex-col items-center gap-3">
+-            <img src={qr} alt={`Código QR que abre ${url}`} className="h-44 w-44 rounded-2xl bg-white p-2 ring-1 ring-slate-200" />
++            <img src={qr} alt={`Código QR que abre ${url}`} className="h-44 w-44 rounded-2xl bg-surface p-2 ring-1 ring-line" />
+             <a href={qr} download="qr-encuesta.png" className={`${btnPrimario} inline-block`}>
+               Descargar QR (PNG)
+             </a>
+diff --git a/src/components/EncuestaForm.jsx b/src/components/EncuestaForm.jsx
+index 42a97f8..8e10c9c 100644
+--- a/src/components/EncuestaForm.jsx
++++ b/src/components/EncuestaForm.jsx
+@@ -17,23 +17,23 @@ const COOLDOWN_MS = 30000; // espera entre intentos fallidos
+ 
+ // Clases completas (no armadas con variables) para que Tailwind las detecte al compilar.
+ const TONOS = {
+-  indigo: "bg-indigo-100", sky: "bg-sky-100", violet: "bg-violet-100", emerald: "bg-emerald-100",
+-  amber: "bg-amber-100", rose: "bg-rose-100", cyan: "bg-cyan-100", orange: "bg-orange-100", fuchsia: "bg-fuchsia-100",
++  indigo: "bg-indigo-100 dark:bg-indigo-500/25", sky: "bg-sky-100 dark:bg-sky-500/25", violet: "bg-violet-100 dark:bg-violet-500/25", emerald: "bg-emerald-100 dark:bg-emerald-500/25",
++  amber: "bg-amber-100 dark:bg-amber-500/25", rose: "bg-rose-100 dark:bg-rose-500/25", cyan: "bg-cyan-100 dark:bg-cyan-500/25", orange: "bg-orange-100 dark:bg-orange-500/25", fuchsia: "bg-fuchsia-100 dark:bg-fuchsia-500/25",
+ };
+ 
+ const inputNumCls =
+-  "w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-lg font-semibold text-slate-900 " +
+-  "transition placeholder:font-normal placeholder:text-slate-400 focus:border-indigo-600 focus:bg-white " +
+-  "focus:outline-none focus:ring-4 focus:ring-indigo-100";
++  "w-full rounded-2xl border-2 border-line bg-surface-2 px-4 py-3 text-lg font-semibold text-fg " +
++  "transition placeholder:font-normal placeholder:text-muted focus:border-brand focus:bg-surface " +
++  "focus:outline-none focus:ring-4 focus:ring-brand-line";
+ 
+ function Pregunta({ id, emoji, tono, titulo, children }) {
+   return (
+-    <section aria-labelledby={id} className="rounded-3xl bg-white p-5 shadow-lg shadow-indigo-100/60 ring-1 ring-slate-100">
++    <section aria-labelledby={id} className="rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line">
+       <div className="mb-4 flex items-center gap-3">
+         <span aria-hidden="true" className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-xl ${TONOS[tono]}`}>
+           {emoji}
+         </span>
+-        <h3 id={id} className="text-base font-semibold leading-snug text-slate-900">{titulo}</h3>
++        <h3 id={id} className="text-base font-semibold leading-snug text-fg">{titulo}</h3>
+       </div>
+       {children}
+     </section>
+@@ -48,7 +48,7 @@ function Opciones({ id, name, valores, valor, onChange, op, layout = "grid" }) {
+       {valores.map((v) => (
+         <label key={v} className="relative">
+           <input type="radio" name={name} value={v} checked={valor === v} onChange={onChange} className="peer sr-only" />
+-          <span className="flex h-full min-h-11 cursor-pointer select-none items-center justify-center rounded-2xl border-2 border-slate-200 bg-white px-4 py-2 text-center text-sm font-medium text-slate-700 transition hover:border-indigo-300 peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white peer-focus-visible:ring-4 peer-focus-visible:ring-indigo-200">
++          <span className="flex h-full min-h-11 cursor-pointer select-none items-center justify-center rounded-2xl border-2 border-line bg-surface px-4 py-2 text-center text-sm font-medium text-fg-soft transition hover:border-brand-line peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:text-white peer-focus-visible:ring-4 peer-focus-visible:ring-brand-line">
+             {op(v)}
+           </span>
+         </label>
+@@ -61,7 +61,7 @@ function Numero({ id, unidad, ...props }) {
+   return (
+     <div className="flex items-center gap-3">
+       <input type="number" aria-labelledby={id} className={inputNumCls} {...props} />
+-      <span className="shrink-0 text-sm font-medium text-slate-500">{unidad}</span>
++      <span className="shrink-0 text-sm font-medium text-muted">{unidad}</span>
+     </div>
+   );
+ }
+@@ -90,7 +90,16 @@ export default function EncuestaForm({ t, onSuccess }) {
+     if (Date.now() - ultimoIntento.current < COOLDOWN_MS) return setErrorKey("errEspera");
+ 
+     const datos = limpiarRespuestas(form);
+-    if (!datos) return setErrorKey("errCampos");
++    if (!datos) {
++      // Lleva a la primera pregunta sin responder, para no dejar a la persona buscando qué falta.
++      const faltante = REQUERIDOS.find((k) => form[k] === "");
++      const campo = faltante && document.querySelector(`[name="${faltante}"]`);
++      if (campo) {
++        (campo.closest("section") ?? campo).scrollIntoView({ block: "center", behavior: "smooth" });
++        campo.focus({ preventScroll: true });
++      }
++      return setErrorKey("errCampos");
++    }
+ 
+     setEnviando(true);
+     ultimoIntento.current = Date.now();
+@@ -107,26 +116,26 @@ export default function EncuestaForm({ t, onSuccess }) {
+   };
+ 
+   return (
+-    <form onSubmit={handleSubmit} noValidate autoComplete="off" className="space-y-4">
+-      <section aria-labelledby="aviso-titulo" className="rounded-3xl bg-indigo-50 p-5 ring-1 ring-indigo-100">
+-        <h2 id="aviso-titulo" className="flex items-center gap-2 font-semibold text-indigo-950">
++    <form onSubmit={handleSubmit} noValidate autoComplete="off" className="grid gap-4 md:grid-cols-2 md:items-start">
++      <section aria-labelledby="aviso-titulo" className="md:col-span-2 rounded-3xl bg-brand-soft p-5 ring-1 ring-brand-line">
++        <h2 id="aviso-titulo" className="flex items-center gap-2 font-semibold text-brand-text">
+           <span aria-hidden="true">🔒</span>{t.avisoTitulo}
+         </h2>
+-        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-700 marker:text-indigo-400">
++        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm text-fg-soft marker:text-brand">
+           {t.aviso.map((p) => <li key={p}>{p}</li>)}
+         </ul>
+-        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-sm font-medium text-slate-900 ring-1 ring-indigo-100">
++        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-surface p-3 text-sm font-medium text-fg ring-1 ring-brand-line">
+           <input type="checkbox" checked={acepta} onChange={(e) => setAcepta(e.target.checked)}
+             className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-600" />
+           <span>{t.consiento}</span>
+         </label>
+       </section>
+ 
+-      <div className="sticky top-3 z-10 rounded-2xl bg-white/90 px-4 py-3 shadow-md ring-1 ring-slate-100 backdrop-blur">
+-        <p className="mb-1.5 text-xs font-semibold text-slate-600">{t.progreso(respondidas, REQUERIDOS.length)}</p>
++      <div className="sticky top-3 z-10 md:col-span-2 rounded-2xl bg-surface/90 px-4 py-3 shadow-md ring-1 ring-line backdrop-blur">
++        <p className="mb-1.5 text-xs font-semibold text-fg-soft">{t.progreso(respondidas, REQUERIDOS.length)}</p>
+         <div role="progressbar" aria-label={t.progreso(respondidas, REQUERIDOS.length)}
+           aria-valuemin={0} aria-valuemax={REQUERIDOS.length} aria-valuenow={respondidas}
+-          className="h-2 overflow-hidden rounded-full bg-slate-100">
++          className="h-2 overflow-hidden rounded-full bg-surface-2">
+           <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
+             style={{ width: `${(respondidas / REQUERIDOS.length) * 100}%` }} />
+         </div>
+@@ -138,7 +147,7 @@ export default function EncuestaForm({ t, onSuccess }) {
+ 
+       <Pregunta id="q-curso" emoji="🏫" tono="emerald" titulo={t.curso1}>
+         <Opciones id="q-curso" name="curso" valores={CURSOS} valor={form.curso} onChange={onChange} op={op} layout="wrap" />
+-        <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900 ring-1 ring-emerald-100">
++        <p className="mt-3 rounded-2xl bg-ok-soft px-4 py-2.5 text-sm text-ok ring-1 ring-ok-line">
+           <span aria-hidden="true">💡 </span>{t.cursoAyuda}
+         </p>
+       </Pregunta>
+@@ -148,18 +157,18 @@ export default function EncuestaForm({ t, onSuccess }) {
+       </Pregunta>
+ 
+       <Pregunta id="q-sueno" emoji="😴" tono="violet" titulo={t.sueno}>
+-        <p aria-hidden="true" className="mb-3 text-center text-4xl font-extrabold text-indigo-600">
+-          {form.horasSueno} <span className="text-base font-medium text-slate-500">h</span>
++        <p aria-hidden="true" className="mb-3 text-center text-4xl font-extrabold text-brand">
++          {form.horasSueno} <span className="text-base font-medium text-muted">h</span>
+         </p>
+-        <input type="range" aria-labelledby="q-sueno" name="horasSueno" min="0" max="12" step="0.5"
++        <input type="range" aria-labelledby="q-sueno" aria-valuetext={`${form.horasSueno} h`} name="horasSueno" min="0" max="12" step="0.5"
+           value={form.horasSueno} onChange={onChange} className="h-2 w-full cursor-pointer accent-indigo-600" />
+-        <div aria-hidden="true" className="mt-1 flex justify-between text-xs text-slate-400"><span>0</span><span>12</span></div>
++        <div aria-hidden="true" className="mt-1 flex justify-between text-xs text-muted"><span>0</span><span>12</span></div>
+       </Pregunta>
+ 
+       <Pregunta id="q-agua" emoji="💧" tono="sky" titulo={t.agua}>
+         <Numero id="q-agua" unidad={t.uVasos} inputMode="numeric" name="vasosAgua" min="0" max="30" step="1"
+           value={form.vasosAgua} onChange={onChange} placeholder={t.phAgua} />
+-        <p className="mt-3 rounded-2xl bg-sky-50 px-4 py-2.5 text-sm text-sky-900 ring-1 ring-sky-100">
++        <p className="mt-3 rounded-2xl bg-info-soft px-4 py-2.5 text-sm text-info ring-1 ring-info-line">
+           <span aria-hidden="true">💡 </span>{t.aguaAyuda}
+         </p>
+       </Pregunta>
+@@ -199,16 +208,16 @@ export default function EncuestaForm({ t, onSuccess }) {
+       </div>
+ 
+       {errorKey && (
+-        <div role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
++        <div role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger ring-1 ring-danger-line md:col-span-2">
+           <p>{t[errorKey]}</p>
+           {errorKey === "errEnvio" && detalle && new URLSearchParams(window.location.search).has("debug") && (
+-            <p className="mt-1 text-xs text-red-800">Código: {detalle.codigo}. {detalle.pista}</p>
++            <p className="mt-1 text-xs text-danger">Código: {detalle.codigo}. {detalle.pista}</p>
+           )}
+         </div>
+       )}
+ 
+       <button type="submit" disabled={enviando}
+-        className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 py-4 text-base font-bold text-white shadow-lg shadow-indigo-300/50 transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60">
++        className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 py-4 text-base font-bold text-white shadow-lg md:col-span-2 md:mx-auto md:max-w-md transition hover:brightness-110 active:scale-[0.99] disabled:opacity-60">
+         {enviando ? t.enviando : t.enviar}
+       </button>
+     </form>
+diff --git a/src/components/Estadistica.jsx b/src/components/Estadistica.jsx
+index 65e2a47..7614a38 100644
+--- a/src/components/Estadistica.jsx
++++ b/src/components/Estadistica.jsx
+@@ -9,11 +9,12 @@ const GLOSARIO = [
+     ["Media (promedio)", "Se suman todos los valores y se divide por la cantidad de datos.", "Resume todo en un número, pero un valor muy alto o muy bajo la “arrastra”."],
+     ["Mediana", "El valor del medio cuando los datos están ordenados: la mitad de las personas está por debajo y la otra mitad por encima.", "No se deja arrastrar por valores extremos. Si media y mediana difieren mucho, hay datos atípicos o la distribución es asimétrica."],
+     ["Moda", "El valor que más se repite.", "Muestra la respuesta más común. Puede no existir o haber más de una."],
+-    ["Cuartiles (Q1 y Q3)", "Dividen los datos ordenados en cuatro partes: el 25 % está por debajo de Q1 y el 75 % por debajo de Q3.", "Entre Q1 y Q3 está el 50 % central de las respuestas."],
++    ["Cuartiles (Q1 y Q3)", "Si ordenás las respuestas de menor a mayor y las dividís en cuatro partes con la misma cantidad de personas, los cuartiles son los puntos de corte. Q1 (primer cuartil) deja por debajo a la cuarta parte de las respuestas (25 %). Q3 (tercer cuartil) deja por debajo a las tres cuartas partes (75 %). El corte del medio es la mediana.", "Entre Q1 y Q3 queda el 50 % central de las respuestas, sin contar el cuarto más bajo ni el cuarto más alto. Ejemplo: si Q1 es 5,5 y Q3 es 6,75 horas, la mitad de las personas duerme entre 5,5 y 6,75 horas."],
+   ]},
+   { grupo: "Dispersión: ¿qué tan repartidos están?", items: [
+     ["Rango", "Diferencia entre el valor máximo y el mínimo.", "Es fácil de calcular, pero depende solo de los dos extremos."],
+-    ["Rango intercuartílico (RIC)", "Q3 − Q1: el ancho del 50 % central.", "Mide la dispersión sin que los extremos la distorsionen. Se usa para detectar valores atípicos."],
++    ["Rango intercuartílico (RIC)", "Es la distancia entre Q3 y Q1: se calcula Q3 − Q1. Dice qué tan ancho es el 50 % central de las respuestas.", "Mide qué tan repartidas están las respuestas sin que los valores extremos la distorsionen. Con Q1 = 5,5 y Q3 = 6,75, el RIC es 1,25."],
++    ["Valor atípico", "Una respuesta que se aleja mucho del resto. Usamos una regla estándar: se calculan dos límites, el inferior (Q1 − 1,5 × RIC) y el superior (Q3 + 1,5 × RIC), y lo que queda fuera es atípico. Con Q1 = 5,5 y Q3 = 6,75, los límites son 3,6 y 8,6 horas.", "No significa que esté mal: puede ser un caso real o un error de carga (por ejemplo, escribir 24 en vez de 2,4). Conviene revisarlo."],
+     ["Varianza y desvío estándar", "La varianza es el promedio de los cuadrados de las distancias a la media (acá dividimos por n − 1, por ser una muestra). El desvío es su raíz cuadrada, así que queda en las mismas unidades que los datos.", "Cuanto más chico es el desvío, más parecidas son las respuestas; cuanto más grande, más distintas."],
+     ["Coeficiente de variación", "Desvío estándar ÷ media, en porcentaje.", "Permite comparar la dispersión de variables con unidades distintas (horas contra vasos)."],
+   ]},
+@@ -29,15 +30,26 @@ function lectura(r, unidad) {
+   );
+   frases.push(`La mitad central de las respuestas está entre ${f(r.q1)} y ${f(r.q3)} ${unidad}.`);
+   if (r.cv !== null) frases.push(r.cv < 15 ? "Las respuestas son muy parecidas entre sí." : r.cv < 30 ? "Hay una dispersión moderada." : "Las respuestas son muy distintas entre sí.");
+-  if (r.atipicos > 0) frases.push(`Hay ${r.atipicos === 1 ? "1 valor atípico" : `${r.atipicos} valores atípicos`} (fuera de Q1 − 1,5·RIC o Q3 + 1,5·RIC).`);
++  if (r.atipicos > 0) {
++    const partes = [];
++    if (r.atipicosBajos > 0) partes.push(`${r.atipicosBajos} por debajo de ${f(r.limInf)}`);
++    if (r.atipicosAltos > 0) partes.push(`${r.atipicosAltos} por encima de ${f(r.limSup)}`);
++    frases.push(
++      `Hay ${r.atipicos === 1 ? "1 valor atípico" : `${r.atipicos} valores atípicos`} (${partes.join(" y ")} ${unidad}). ` +
++      "Se alejan mucho del resto: conviene revisar si son casos reales o errores de carga."
++    );
++  } else {
++    frases.push("No hay valores atípicos.");
++  }
+   return frases.join(" ");
+ }
+ 
+-function Medida({ nombre, valor }) {
++function Medida({ nombre, valor, ayuda }) {
+   return (
+-    <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{nombre}</p>
+-      <p className="text-lg font-extrabold tabular-nums text-slate-900">{valor}</p>
++    <div className="rounded-xl bg-surface px-3 py-2 ring-1 ring-line">
++      <p className="text-xs font-semibold text-muted">{nombre}</p>
++      <p className="text-lg font-extrabold tabular-nums text-fg">{valor}</p>
++      {ayuda && <p className="text-xs leading-tight text-muted">{ayuda}</p>}
+     </div>
+   );
+ }
+@@ -46,33 +58,33 @@ function Tarjeta({ m }) {
+   const r = m.resumen;
+   return (
+     <section className={tarjeta}>
+-      <Titulo emoji={m.emoji}>{m.label} <span className="text-sm font-normal text-slate-500">({m.unidad})</span></Titulo>
+-      {!r ? <p className="text-sm text-slate-500">Todavía hay pocos datos para calcular estas medidas.</p> : (
++      <Titulo emoji={m.emoji}>{m.label} <span className="text-sm font-normal text-muted">({m.unidad})</span></Titulo>
++      {!r ? <p className="text-sm text-muted">Todavía hay pocos datos para calcular estas medidas.</p> : (
+         <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+-          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-100"><Histograma cajas={m.cajas} color={m.color} unidad={m.unidad} /></div>
++          <div className="rounded-2xl bg-surface-2 p-3 ring-1 ring-line"><Histograma cajas={m.cajas} color={m.color} unidad={m.unidad} /></div>
+           <div className="space-y-3">
+             <div>
+-              <p className="mb-1.5 text-xs font-bold text-indigo-700">Posición</p>
++              <p className="mb-1.5 text-xs font-bold text-brand-text">Posición</p>
+               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                 <Medida nombre="Media" valor={f(r.media)} />
+-                <Medida nombre="Mediana" valor={f(r.mediana)} />
++                <Medida nombre="Mediana" valor={f(r.mediana)} ayuda="el valor del medio" />
+                 <Medida nombre="Moda" valor={r.modas.length ? r.modas.map(f).join(" y ") : "No hay"} />
+-                <Medida nombre="Q1" valor={f(r.q1)} />
+-                <Medida nombre="Q3" valor={f(r.q3)} />
++                <Medida nombre="Cuartil 1 (Q1)" valor={f(r.q1)} ayuda="25 % por debajo" />
++                <Medida nombre="Cuartil 3 (Q3)" valor={f(r.q3)} ayuda="75 % por debajo" />
+               </div>
+             </div>
+             <div>
+-              <p className="mb-1.5 text-xs font-bold text-emerald-700">Dispersión</p>
++              <p className="mb-1.5 text-xs font-bold text-ok">Dispersión</p>
+               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+-                <Medida nombre="Rango" valor={f(r.rango)} />
+-                <Medida nombre="RIC" valor={f(r.ric)} />
++                <Medida nombre="Rango" valor={f(r.rango)} ayuda="máximo − mínimo" />
++                <Medida nombre="RIC" valor={f(r.ric)} ayuda="Q3 − Q1" />
+                 <Medida nombre="Varianza" valor={f(r.varianza)} />
+                 <Medida nombre="Desvío" valor={f(r.desvio)} />
+-                <Medida nombre="C. de var." valor={r.cv === null ? "—" : `${Math.round(r.cv)} %`} />
++                <Medida nombre="Coef. de variación" valor={r.cv === null ? "—" : `${Math.round(r.cv)} %`} />
+               </div>
+             </div>
+-            <p className="rounded-2xl bg-indigo-50 px-3 py-2 text-sm text-indigo-950"><span aria-hidden="true">💡 </span>{lectura(r, m.unidad)}</p>
+-            <p className="text-xs text-slate-500">Mínimo {f(r.min)} · máximo {f(r.max)} · {r.n} respuestas.</p>
++            <p className="rounded-2xl bg-brand-soft px-3 py-2 text-sm leading-relaxed text-brand-text"><span aria-hidden="true">💡 </span><span className="font-semibold">En palabras: </span>{lectura(r, m.unidad)}</p>
++            <p className="text-xs text-muted">Mínimo {f(r.min)} · máximo {f(r.max)} · {r.n} respuestas.</p>
+           </div>
+         </div>
+       )}
+@@ -85,7 +97,7 @@ export default function Estadistica({ est }) {
+     <div className="space-y-6">
+       <section className={tarjeta}>
+         <Titulo emoji="🧮">¿Por qué importan estas medidas?</Titulo>
+-        <p className="text-sm leading-relaxed text-slate-700">
++        <p className="text-sm leading-relaxed text-fg-soft">
+           Cuando recolectamos datos tenemos muchas respuestas sueltas, y hace falta resumirlas para poder leerlas. Un solo número no alcanza:
+           dos cursos pueden tener el mismo promedio de sueño y, sin embargo, en uno todos duermen entre 7 y 8 horas y en el otro hay quienes duermen 4 y quienes duermen 10.
+           Las <strong>medidas de posición</strong> dicen dónde se ubican los datos y las <strong>medidas de dispersión</strong> dicen qué tan parecidos o distintos son.
+@@ -93,14 +105,14 @@ export default function Estadistica({ est }) {
+         </p>
+         <div className="mt-4 grid gap-4 md:grid-cols-2">
+           {GLOSARIO.map((g) => (
+-            <div key={g.grupo} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+-              <h4 className="mb-2 font-semibold text-slate-900">{g.grupo}</h4>
++            <div key={g.grupo} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
++              <h4 className="mb-2 font-semibold text-fg">{g.grupo}</h4>
+               <dl className="space-y-3 text-sm">
+                 {g.items.map(([t, que, porque]) => (
+                   <div key={t}>
+-                    <dt className="font-semibold text-indigo-800">{t}</dt>
+-                    <dd className="text-slate-700">{que}</dd>
+-                    <dd className="text-slate-500"><span className="font-semibold">Para qué sirve:</span> {porque}</dd>
++                    <dt className="font-semibold text-brand-text">{t}</dt>
++                    <dd className="text-fg-soft">{que}</dd>
++                    <dd className="text-muted"><span className="font-semibold">Para qué sirve:</span> {porque}</dd>
+                   </div>
+                 ))}
+               </dl>
+@@ -109,7 +121,7 @@ export default function Estadistica({ est }) {
+         </div>
+       </section>
+       {est.numericas.map((m) => <Tarjeta key={m.key} m={m} />)}
+-      <p className="text-xs text-slate-500">
++      <p className="text-xs text-muted">
+         Las medidas se calculan con todas las respuestas incluidas (sin separar por grupo). Los días de actividad física se muestran como categorías porque se preguntan por rangos (“1-2”, “4+”).
+       </p>
+     </div>
+diff --git a/src/components/Graficos.jsx b/src/components/Graficos.jsx
+index 935d8a7..e455891 100644
+--- a/src/components/Graficos.jsx
++++ b/src/components/Graficos.jsx
+@@ -11,11 +11,11 @@ function Barras({ datos, total }) {
+     <ul className="space-y-2">
+       {datos.map((d, i) => (
+         <li key={d.nombre} className="flex items-center gap-2 text-sm">
+-          <span className="w-28 shrink-0 text-slate-700">{d.nombre}</span>
+-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
++          <span className="w-28 shrink-0 text-fg-soft">{d.nombre}</span>
++          <div className="h-3 flex-1 overflow-hidden rounded-full bg-surface ring-1 ring-line">
+             <div className="h-3 rounded-full" style={{ width: `${(d.n / max) * 100}%`, background: PALETA[i % PALETA.length] }} />
+           </div>
+-          <span className="w-16 shrink-0 text-right font-semibold tabular-nums text-slate-900">{d.n} · {pct(d.n, total)}%</span>
++          <span className="w-16 shrink-0 text-right font-semibold tabular-nums text-fg">{d.n} · {pct(d.n, total)}%</span>
+         </li>
+       ))}
+     </ul>
+@@ -33,7 +33,7 @@ function Torta({ datos, total, titulo }) {
+     const fill = PALETA[i % PALETA.length];
+     return datos.length === 1
+       ? <circle key={d.nombre} r={R} fill={fill} />
+-      : <path key={d.nombre} d={`M0 0 L${x1} ${y1} A${R} ${R} 0 ${ang > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`} fill={fill} stroke="#fff" strokeWidth="2" />;
++      : <path key={d.nombre} d={`M0 0 L${x1} ${y1} A${R} ${R} 0 ${ang > Math.PI ? 1 : 0} 1 ${x2} ${y2} Z`} fill={fill} style={{ stroke: "var(--surface)" }} strokeWidth="2" />;
+   });
+   return (
+     <svg viewBox="-70 -70 140 140" role="img" aria-label={`Gráfico circular: ${titulo}`} className="mx-auto h-40 w-40 shrink-0">
+@@ -46,14 +46,14 @@ export function Histograma({ cajas, color, unidad }) {
+   const max = Math.max(1, ...cajas.map((c) => c.n));
+   const W = 320, H = 130, base = H - 22, ancho = W / cajas.length;
+   return (
+-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Histograma en ${unidad}`} className="w-full">
++    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Histograma en ${unidad}. ` + cajas.map((c) => `de ${nf.format(c.desde)} a ${nf.format(c.hasta)}: ${c.n} ${c.n === 1 ? "respuesta" : "respuestas"}`).join("; ")} className="w-full">
+       {cajas.map((c, i) => {
+         const h = (c.n / max) * (base - 14);
+         return (
+           <g key={c.desde}>
+             <rect x={i * ancho + 2} y={base - h} width={ancho - 4} height={h} rx="4" fill={color} />
+-            <text x={i * ancho + ancho / 2} y={base - h - 3} textAnchor="middle" fontSize="10" fontWeight="700" fill="#0f172a">{c.n}</text>
+-            <text x={i * ancho + ancho / 2} y={H - 6} textAnchor="middle" fontSize="9" fill="#64748b">
++            <text x={i * ancho + ancho / 2} y={base - h - 3} textAnchor="middle" fontSize="10" fontWeight="700" style={{ fill: "var(--fg)" }}>{c.n}</text>
++            <text x={i * ancho + ancho / 2} y={H - 6} textAnchor="middle" fontSize="9" style={{ fill: "var(--muted)" }}>
+               {cajas[0].hasta - cajas[0].desde === 1 && Number.isInteger(c.desde) ? c.desde : `${nf.format(c.desde)}–${nf.format(c.hasta)}`}
+             </text>
+           </g>
+@@ -68,16 +68,16 @@ export default function Graficos({ est }) {
+     <div className="space-y-6">
+       <section className={tarjeta}>
+         <Titulo emoji="📊">Distribución de las respuestas</Titulo>
+-        <p className="mb-4 text-xs text-slate-500">
++        <p className="mb-4 text-xs text-muted">
+           Cada gráfico cuenta cuántas personas eligieron cada opción. Las opciones con menos de {MIN_GRUPO} respuestas se agrupan en “Otras respuestas”.
+         </p>
+         <div className="grid gap-4 md:grid-cols-2">
+           {est.categoricas.map((c) => {
+             const total = c.datos.reduce((a, d) => a + d.n, 0);
+             return (
+-              <div key={c.key} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+-                <h4 className="mb-3 flex items-center gap-2 font-semibold text-slate-900"><span aria-hidden="true">{c.emoji}</span>{c.label}</h4>
+-                {total === 0 ? <p className="text-sm text-slate-500">Sin datos suficientes.</p> : (
++              <div key={c.key} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
++                <h4 className="mb-3 flex items-center gap-2 font-semibold text-fg"><span aria-hidden="true">{c.emoji}</span>{c.label}</h4>
++                {total === 0 ? <p className="text-sm text-muted">Sin datos suficientes.</p> : (
+                   <div className="flex flex-col items-center gap-4 sm:flex-row">
+                     <Torta datos={c.datos} total={total} titulo={c.label} />
+                     <div className="w-full flex-1"><Barras datos={c.datos} total={total} /></div>
+@@ -91,12 +91,12 @@ export default function Graficos({ est }) {
+ 
+       <section className={tarjeta}>
+         <Titulo emoji="📉">Histogramas de las variables numéricas</Titulo>
+-        <p className="mb-4 text-xs text-slate-500">Cada barra cuenta cuántas respuestas caen en ese intervalo. Muestran la “forma” de los datos: dónde se juntan y qué tan repartidos están.</p>
++        <p className="mb-4 text-xs text-muted">Cada barra cuenta cuántas respuestas caen en ese intervalo. Muestran la “forma” de los datos: dónde se juntan y qué tan repartidos están.</p>
+         <div className="grid gap-4 md:grid-cols-2">
+           {est.numericas.map((m) => (
+-            <div key={m.key} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+-              <h4 className="mb-2 flex items-center gap-2 font-semibold text-slate-900"><span aria-hidden="true">{m.emoji}</span>{m.label} <span className="text-xs font-normal text-slate-500">({m.unidad})</span></h4>
+-              {m.resumen ? <Histograma cajas={m.cajas} color={m.color} unidad={m.unidad} /> : <p className="text-sm text-slate-500">Todavía hay pocos datos.</p>}
++            <div key={m.key} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
++              <h4 className="mb-2 flex items-center gap-2 font-semibold text-fg"><span aria-hidden="true">{m.emoji}</span>{m.label} <span className="text-xs font-normal text-muted">({m.unidad})</span></h4>
++              {m.resumen ? <Histograma cajas={m.cajas} color={m.color} unidad={m.unidad} /> : <p className="text-sm text-muted">Todavía hay pocos datos.</p>}
+             </div>
+           ))}
+         </div>
+diff --git a/src/components/Panel.jsx b/src/components/Panel.jsx
+index ed0ef9c..6ad2b40 100644
+--- a/src/components/Panel.jsx
++++ b/src/components/Panel.jsx
+@@ -8,7 +8,7 @@ import Compartir from "./Compartir";
+ import BorrarDatos from "./BorrarDatos";
+ import { explicarErrorFirebase } from "../diagnostico";
+ 
+-import { Manchas, btnPrimario, btnSecundario, inputCls, tarjeta } from "./ui";
++import { Aviso, Cargando, Manchas, btnPrimario, btnSecundario, inputCls, tarjeta } from "./ui";
+ 
+ const ERRORES_LOGIN = {
+   "auth/invalid-credential": "Correo o contraseña incorrectos.",
+@@ -41,18 +41,18 @@ function Login() {
+     <form onSubmit={entrar} className={`${tarjeta} mx-auto max-w-sm space-y-4 p-6`}>
+       <div className="text-center">
+         <p aria-hidden="true" className="text-4xl">🔐</p>
+-        <h2 className="mt-2 text-xl font-bold text-slate-900">Ingreso docente</h2>
+-        <p className="mt-1 text-sm text-slate-500">Entrá para ver los resultados de la encuesta.</p>
++        <h2 className="mt-2 text-xl font-bold text-fg">Ingreso docente</h2>
++        <p className="mt-1 text-sm text-muted">Entrá para ver los resultados de la encuesta.</p>
+       </div>
+       <label className="block">
+-        <span className="mb-1.5 block text-sm font-semibold text-slate-800">Correo</span>
++        <span className="mb-1.5 block text-sm font-semibold text-fg">Correo</span>
+         <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+       </label>
+       <label className="block">
+-        <span className="mb-1.5 block text-sm font-semibold text-slate-800">Contraseña</span>
++        <span className="mb-1.5 block text-sm font-semibold text-fg">Contraseña</span>
+         <input type="password" autoComplete="current-password" required value={clave} onChange={(e) => setClave(e.target.value)} className={inputCls} />
+       </label>
+-      {error && <p role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-700 ring-1 ring-red-100">{error}</p>}
++      {error && <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-2.5 text-sm text-danger ring-1 ring-danger-line">{error}</p>}
+       <button type="submit" disabled={enviando} className={`${btnPrimario} w-full py-3.5 text-base`}>
+         {enviando ? "Ingresando…" : "Ingresar"}
+       </button>
+@@ -101,33 +101,36 @@ export default function Panel() {
+   useEffect(() => { if (user) cargar(user); }, [user, cargar]);
+ 
+   let contenido;
+-  if (user === undefined) contenido = <p className="text-center text-slate-600">Cargando…</p>;
++  if (user === undefined) contenido = <Cargando />;
+   else if (user === null) contenido = <Login />;
+-  else if (estado === "cargando") contenido = <p role="status" className="text-center text-slate-600">Cargando resultados…</p>;
++  else if (estado === "cargando") contenido = <Cargando texto="Cargando resultados…" />;
+   else if (estado === "sinPermiso")
+     contenido = (
+-      <p role="alert" className={`${tarjeta} p-6 text-slate-800`}>
++      <p role="alert" className={`${tarjeta} p-6 text-fg`}>
+         Tu cuenta ({user.email}) no tiene permiso para ver los resultados. Pedile a quien administra la encuesta que te autorice.
+       </p>
+     );
+   else if (estado === "error")
+     contenido = (
+-      <div role="alert" className={`${tarjeta} space-y-2 p-6 text-slate-800`}>
++      <div role="alert" className={`${tarjeta} space-y-2 p-6 text-fg`}>
+         <p>No se pudieron cargar los datos.</p>
+         {fallo && (
+           <>
+             <p className="text-sm">
+-              Falló al {fallo.paso}. Código: <code className="rounded bg-slate-100 px-1.5 py-0.5">{fallo.codigo}</code>
++              Falló al {fallo.paso}. Código: <code className="rounded bg-surface-2 px-1.5 py-0.5">{fallo.codigo}</code>
+             </p>
+-            <p className="text-sm text-slate-600">{fallo.pista}</p>
++            <p className="text-sm text-fg-soft">{fallo.pista}</p>
+           </>
+         )}
+-        <p className="text-sm text-slate-600">Cuando lo corrijas, tocá “Actualizar”.</p>
++        <p className="text-sm text-fg-soft">Cuando lo corrijas, tocá “Actualizar”.</p>
+       </div>
+     );
+   else
+     contenido = (
+       <div className="space-y-6">
++        {filas.length === 0 && (
++          <Aviso tono="info" icono="📭">Todavía no llegó ninguna respuesta. Compartí el enlace o el QR de más abajo para empezar.</Aviso>
++        )}
+         <PanelResultados filas={filas} />
+         <Compartir />
+         <BorrarDatos refs={refs} filas={filas} onTerminado={() => cargar(user, true)} />
+@@ -135,15 +138,15 @@ export default function Panel() {
+     );
+ 
+   return (
+-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-emerald-50 px-4 py-8">
++    <main id="contenido" className="relative min-h-screen overflow-hidden fondo-app px-4 py-8">
+       <Manchas />
+-      <div className="relative mx-auto w-full max-w-5xl">
++      <div className="relative mx-auto w-full max-w-5xl xl:max-w-6xl">
+         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+           <div>
+-            <p className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100">
++            <p className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-semibold text-brand-text shadow-sm ring-1 ring-brand-line">
+               <span aria-hidden="true">🏫</span>Panel docente
+             </p>
+-            <h1 className="mt-3 bg-gradient-to-r from-indigo-700 to-violet-600 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
++            <h1 className="mt-3 bg-gradient-to-r from-brand-text to-brand-2 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent">
+               Resultados de la encuesta
+             </h1>
+           </div>
+diff --git a/src/components/PanelResultados.jsx b/src/components/PanelResultados.jsx
+index 7f52d2e..6648c4d 100644
+--- a/src/components/PanelResultados.jsx
++++ b/src/components/PanelResultados.jsx
+@@ -23,8 +23,8 @@ const ADORNO = {
+ function Dato({ valor, etiqueta, fondo }) {
+   return (
+     <div className={`rounded-2xl p-4 ${fondo}`}>
+-      <p className="text-3xl font-extrabold text-slate-900">{valor}</p>
+-      <p className="mt-1 text-xs font-semibold text-slate-600">{etiqueta}</p>
++      <p className="text-3xl font-extrabold text-fg">{valor}</p>
++      <p className="mt-1 text-xs font-semibold text-fg-soft">{etiqueta}</p>
+     </div>
+   );
+ }
+@@ -33,9 +33,9 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
+   return (
+     <section className={tarjeta}>
+       <Titulo emoji={emoji}>{titulo}</Titulo>
+-      <div className="overflow-x-auto rounded-2xl ring-1 ring-slate-100">
++      <div className="overflow-x-auto rounded-2xl ring-1 ring-line">
+         <table className="w-full min-w-[760px] text-left text-sm">
+-          <thead className="bg-indigo-50 text-indigo-950">
++          <thead className="bg-brand-soft text-brand-text">
+             <tr>
+               <th scope="col" className="px-3 py-3 font-semibold">Grupo</th>
+               <th scope="col" className="px-3 py-3 text-right font-semibold">Resp.</th>
+@@ -46,11 +46,11 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
+           </thead>
+           <tbody>
+             {filas.map((f) => (
+-              <tr key={f.grupo} className="border-t border-slate-100 even:bg-slate-50/60">
+-                <th scope="row" className="px-3 py-2.5 font-semibold text-slate-900">{f.grupo}</th>
+-                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{f.n}</td>
++              <tr key={f.grupo} className="border-t border-line even:bg-surface-2/60">
++                <th scope="row" className="px-3 py-2.5 font-semibold text-fg">{f.grupo}</th>
++                <td className="px-3 py-2.5 text-right tabular-nums text-fg-soft">{f.n}</td>
+                 {METRICAS.map((m) => (
+-                  <td key={m.key} className="px-3 py-2.5 text-right tabular-nums text-slate-800">{fmt(f.medias[m.key], m)}</td>
++                  <td key={m.key} className="px-3 py-2.5 text-right tabular-nums text-fg">{fmt(f.medias[m.key], m)}</td>
+                 ))}
+               </tr>
+             ))}
+@@ -58,7 +58,7 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
+         </table>
+       </div>
+       {ocultos.length > 0 && (
+-        <p className="mt-3 text-xs text-slate-500">
++        <p className="mt-3 text-xs text-muted">
+           No se muestran (menos de {MIN_GRUPO} respuestas): {ocultos.join(", ")}.
+         </p>
+       )}
+@@ -69,19 +69,19 @@ function Tabla({ emoji, titulo, filas, ocultos = [] }) {
+ function Barras({ titulo, filas, metrica, max, color }) {
+   return (
+     <div>
+-      <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</h5>
++      <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{titulo}</h5>
+       <ul className="space-y-2">
+         {filas.map(({ grupo, medias }) => {
+           const v = medias[metrica.key];
+           return (
+             <li key={grupo} className="flex items-center gap-2 text-sm">
+-              <span className="w-24 shrink-0 text-slate-700">{grupo}</span>
+-              <div className="h-3 flex-1 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
++              <span className="w-24 shrink-0 text-fg-soft">{grupo}</span>
++              <div className="h-3 flex-1 overflow-hidden rounded-full bg-surface ring-1 ring-line">
+                 {v !== null && (
+                   <div className={`h-3 rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(100, (v / max) * 100)}%` }} />
+                 )}
+               </div>
+-              <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-slate-900">{fmt(v, metrica)}</span>
++              <span className="w-14 shrink-0 text-right font-semibold tabular-nums text-fg">{fmt(v, metrica)}</span>
+             </li>
+           );
+         })}
+@@ -100,8 +100,8 @@ function GraficosPromedios({ t }) {
+           const max = m.pct ? 100 : Math.max(1, ...valores);
+           const { emoji, barra } = ADORNO[m.key];
+           return (
+-            <div key={m.key} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
+-              <h4 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
++            <div key={m.key} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
++              <h4 className="mb-3 flex items-center gap-2 font-semibold text-fg">
+                 <span aria-hidden="true">{emoji}</span>{m.label}
+               </h4>
+               <div className="space-y-4">
+@@ -138,12 +138,12 @@ export default function PanelResultados({ filas }) {
+     <div className="space-y-6">
+       <section className={tarjeta}>
+         <div className="grid gap-3 sm:grid-cols-3">
+-          <Dato valor={t.recibidas} etiqueta="Respuestas recibidas" fondo="bg-indigo-50" />
+-          <Dato valor={t.incluidas} etiqueta="Incluidas en los cálculos" fondo="bg-emerald-50" />
+-          <Dato valor={t.excluidas} etiqueta="Excluidas por privacidad" fondo="bg-amber-50" />
++          <Dato valor={t.recibidas} etiqueta="Respuestas recibidas" fondo="bg-brand-soft" />
++          <Dato valor={t.incluidas} etiqueta="Incluidas en los cálculos" fondo="bg-ok-soft" />
++          <Dato valor={t.excluidas} etiqueta="Excluidas por privacidad" fondo="bg-warn-soft" />
+         </div>
+         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+-          <p className="max-w-xl text-xs text-slate-500">
++          <p className="max-w-xl text-xs text-muted">
+             Los roles, cursos y edades con menos de {MIN_GRUPO} respuestas no se muestran ni se exportan, y sus respuestas no entran en ningún total.
+           </p>
+           <button type="button" disabled={t.total.n === 0} onClick={() => descargarCsv(t)} className={btnPrimario}>
+@@ -153,7 +153,7 @@ export default function PanelResultados({ filas }) {
+       </section>
+ 
+       {t.total.n === 0 ? (
+-        <p role="status" className={`${tarjeta} text-slate-700`}>
++        <p role="status" className={`${tarjeta} text-fg-soft`}>
+           <span aria-hidden="true">⏳ </span>
+           Todavía no hay resultados para mostrar: hace falta que cada rol y cada rango de edad incluido tenga al menos {MIN_GRUPO} respuestas.
+         </p>
+@@ -163,7 +163,7 @@ export default function PanelResultados({ filas }) {
+             {PESTANAS.map(([id, texto]) => (
+               <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={pestana === id} aria-controls={`panel-${id}`}
+                 onClick={() => setPestana(id)}
+-                className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${pestana === id ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/40" : "bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-indigo-50"}`}>
++                className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${pestana === id ? "bg-indigo-600 text-white shadow-md shadow-indigo-300/40" : "bg-surface text-fg-soft shadow-sm ring-1 ring-line hover:bg-brand-soft"}`}>
+                 {texto}
+               </button>
+             ))}
+diff --git a/src/components/ui.jsx b/src/components/ui.jsx
+index 2175fba..ac1e37b 100644
+--- a/src/components/ui.jsx
++++ b/src/components/ui.jsx
+@@ -1,32 +1,60 @@
+-// Estilos compartidos del panel docente (misma identidad visual que la encuesta).
+-export const tarjeta = "rounded-3xl bg-white p-5 shadow-lg shadow-indigo-100/60 ring-1 ring-slate-100";
++// Componentes y estilos compartidos (encuesta y panel). Los colores salen de los tokens de src/index.css.
++export const tarjeta = "rounded-3xl bg-surface p-5 shadow-card ring-1 ring-line";
+ export const btnPrimario =
+   "rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-md " +
+-  "shadow-indigo-300/40 transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50";
++  "transition hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50";
+ export const btnSecundario =
+-  "rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 " +
+-  "transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50";
++  "rounded-2xl bg-surface px-4 py-2.5 text-sm font-semibold text-fg-soft shadow-sm ring-1 ring-line " +
++  "transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50";
+ export const btnPeligro =
+-  "rounded-2xl bg-red-700 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-red-200 " +
++  "rounded-2xl bg-red-700 px-5 py-2.5 text-sm font-bold text-white shadow-md " +
+   "transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50";
+ export const inputCls =
+-  "w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 transition " +
+-  "placeholder:text-slate-400 focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-100";
++  "w-full rounded-2xl border-2 border-line bg-surface-2 px-4 py-3 text-base text-fg transition " +
++  "placeholder:text-muted focus:border-brand focus:bg-surface focus:outline-none focus:ring-4 focus:ring-brand-line";
+ 
+ export function Titulo({ emoji, children }) {
+   return (
+-    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
++    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-fg">
+       <span aria-hidden="true">{emoji}</span>{children}
+     </h3>
+   );
+ }
+ 
++const TONOS_AVISO = {
++  ok: "bg-ok-soft text-ok ring-ok-line",
++  error: "bg-danger-soft text-danger ring-danger-line",
++  warn: "bg-warn-soft text-warn ring-warn-line",
++  info: "bg-info-soft text-info ring-info-line",
++  brand: "bg-brand-soft text-brand-text ring-brand-line",
++};
++
++// Aviso en línea con el mismo aspecto en todo el sitio. "error" se anuncia de inmediato; el resto, con cortesía.
++export function Aviso({ tono = "info", icono, children, className = "" }) {
++  return (
++    <div role={tono === "error" ? "alert" : "status"}
++      className={`rounded-2xl px-4 py-2.5 text-sm ring-1 ${TONOS_AVISO[tono]} ${className}`}>
++      {icono && <span aria-hidden="true">{icono} </span>}{children}
++    </div>
++  );
++}
++
++// Estado de carga: indicador + texto (el texto es lo que anuncia el lector de pantalla).
++export function Cargando({ texto = "Cargando…" }) {
++  return (
++    <div role="status" className="flex items-center justify-center gap-3 py-10 text-fg-soft">
++      <span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-brand" />
++      <span className="text-sm font-medium">{texto}</span>
++    </div>
++  );
++}
++
+ // Manchas de color de fondo (decorativas)
+ export function Manchas() {
+   return (
+     <>
+-      <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-300/30 blur-3xl" />
+-      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-emerald-300/30 blur-3xl" />
++      <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-400/20 blur-3xl" />
++      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
+     </>
+   );
+ }
+diff --git a/src/estadistica.js b/src/estadistica.js
+index 25e1360..8c0ace2 100644
+--- a/src/estadistica.js
++++ b/src/estadistica.js
+@@ -43,11 +43,16 @@ export function resumenNumerico(valores, min = MIN_GRUPO) {
+   const varianza = n > 1 ? v.reduce((a, x) => a + (x - media) ** 2, 0) / (n - 1) : 0; // muestral (n − 1)
+   const desvio = Math.sqrt(varianza);
+   const ric = q3 - q1;
+-  const atipicos = v.filter((x) => x < q1 - 1.5 * ric || x > q3 + 1.5 * ric).length;
++  // Regla de Tukey: es atípico lo que queda fuera de [Q1 − 1,5·RIC ; Q3 + 1,5·RIC].
++  const limInf = q1 - 1.5 * ric;
++  const limSup = q3 + 1.5 * ric;
++  const atipicosBajos = v.filter((x) => x < limInf).length;
++  const atipicosAltos = v.filter((x) => x > limSup).length;
++  const atipicos = atipicosBajos + atipicosAltos;
+   return {
+     n, media, mediana, modas, min: v[0], max: v[n - 1], q1, q3,
+     rango: v[n - 1] - v[0], ric, varianza, desvio,
+-    cv: media !== 0 ? (desvio / Math.abs(media)) * 100 : null, atipicos, valores: v,
++    cv: media !== 0 ? (desvio / Math.abs(media)) * 100 : null, atipicos, atipicosBajos, atipicosAltos, limInf, limSup, valores: v,
+   };
+ }
+ 
+diff --git a/src/i18n.js b/src/i18n.js
+index 046b171..7d83aca 100644
+--- a/src/i18n.js
++++ b/src/i18n.js
+@@ -15,6 +15,8 @@ export const TEXTOS = {
+     subtitulo: "Son 2 minutos y es anónima: no guardamos tu nombre ni tus datos personales.",
+     idioma: "Idioma",
+     avisoTitulo: "Antes de empezar",
++    cargando: "Cargando…",
++    saltar: "Saltar al contenido",
+     aviso: [
+       "Es anónima y voluntaria: no pedimos nombre, DNI, correo ni ningún dato que te identifique.",
+       "Usamos las respuestas solo para conocer los hábitos de salud de la comunidad del instituto. Los resultados se muestran en conjunto (promedios por rol y por edad) y no se muestran grupos de menos de 5 respuestas.",
+@@ -66,6 +68,8 @@ export const TEXTOS = {
+     subtitulo: "It takes 2 minutes and it is anonymous: we do not store your name or any personal data.",
+     idioma: "Language",
+     avisoTitulo: "Before you start",
++    cargando: "Loading…",
++    saltar: "Skip to content",
+     aviso: [
+       "It is anonymous and voluntary: we do not ask for your name, ID number, email or anything that identifies you.",
+       "We use the answers only to learn about the health habits of the school community. Results are shown as a whole (averages by role and by age) and groups with fewer than 5 answers are never shown.",
+diff --git a/src/index.css b/src/index.css
+index f1d8c73..7a13b4a 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1 +1,66 @@
+ @import "tailwindcss";
++
++/* ───────── Tokens de diseño ─────────
++   Un solo lugar para colores, bordes, sombras y tipografía. Los componentes usan solo estos nombres
++   (bg-surface, text-fg, ring-line, text-brand…), así el modo oscuro es automático (prefers-color-scheme). */
++:root {
++  color-scheme: light dark;
++
++  --page-1: #eef2ff; --page-2: #ffffff; --page-3: #ecfdf5;
++  --surface: #ffffff;       --surface-2: #f8fafc;     --line: #e2e8f0;
++  --fg: #0f172a;            --fg-soft: #334155;       --muted: #64748b;
++  --brand: #4f46e5;         --brand-text: #4338ca;    --brand-2: #7c3aed;
++  --brand-soft: #eef2ff;    --brand-line: #c7d2fe;
++  --danger: #b91c1c;        --danger-soft: #fef2f2;   --danger-line: #fecaca;
++  --ok: #15803d;            --ok-soft: #f0fdf4;       --ok-line: #bbf7d0;
++  --warn: #b45309;          --warn-soft: #fffbeb;     --warn-line: #fde68a;
++  --info: #0369a1;          --info-soft: #f0f9ff;     --info-line: #bae6fd;
++  --sombra: rgb(99 102 241 / 0.14);
++}
++
++@media (prefers-color-scheme: dark) {
++  :root {
++    --page-1: #0b1020; --page-2: #0f172a; --page-3: #06201a;
++    --surface: #111a2e;     --surface-2: #1a2540;   --line: #2b3a5c;
++    --fg: #f1f5f9;          --fg-soft: #cbd5e1;     --muted: #a3b1c6;
++    --brand: #818cf8;       --brand-text: #c7d2fe;  --brand-2: #c4b5fd;
++    --brand-soft: #1e2350;  --brand-line: #3b4380;
++    --danger: #fca5a5;      --danger-soft: #3a1418; --danger-line: #7f1d1d;
++    --ok: #86efac;          --ok-soft: #0f2b1b;     --ok-line: #14532d;
++    --warn: #fcd34d;        --warn-soft: #33260a;   --warn-line: #78350f;
++    --info: #7dd3fc;        --info-soft: #0b2535;   --info-line: #0c4a6e;
++    --sombra: rgb(0 0 0 / 0.45);
++  }
++}
++
++@theme inline {
++  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
++  --color-surface: var(--surface);   --color-surface-2: var(--surface-2);  --color-line: var(--line);
++  --color-fg: var(--fg);             --color-fg-soft: var(--fg-soft);      --color-muted: var(--muted);
++  --color-brand: var(--brand);       --color-brand-text: var(--brand-text); --color-brand-2: var(--brand-2);
++  --color-brand-soft: var(--brand-soft); --color-brand-line: var(--brand-line);
++  --color-danger: var(--danger);     --color-danger-soft: var(--danger-soft); --color-danger-line: var(--danger-line);
++  --color-ok: var(--ok);             --color-ok-soft: var(--ok-soft);      --color-ok-line: var(--ok-line);
++  --color-warn: var(--warn);         --color-warn-soft: var(--warn-soft);  --color-warn-line: var(--warn-line);
++  --color-info: var(--info);         --color-info-soft: var(--info-soft);  --color-info-line: var(--info-line);
++  --shadow-card: 0 10px 30px -12px var(--sombra);
++  --radius-card: 1.5rem;             /* tarjetas */
++  --radius-control: 1rem;            /* botones, campos, chips */
++}
++
++.fondo-app { background-image: linear-gradient(135deg, var(--page-1), var(--page-2) 50%, var(--page-3)); }
++
++/* Foco visible y consistente para teclado */
++:where(a, button, input, select, textarea, summary):focus-visible {
++  outline: 3px solid var(--brand);
++  outline-offset: 2px;
++}
++
++/* Respeta a quienes piden menos movimiento */
++@media (prefers-reduced-motion: reduce) {
++  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
++}
++
++/* Salto al contenido (solo visible con teclado) */
++.saltar { position: absolute; left: -9999px; top: 0; z-index: 50; }
++.saltar:focus { left: 1rem; top: 1rem; }
+-- 
+2.43.0
+

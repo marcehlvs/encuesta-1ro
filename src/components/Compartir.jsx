@@ -34,17 +34,17 @@ export default function Compartir() {
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
         <div className="flex-1 space-y-3">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-slate-800">Enlace de la encuesta</span>
+            <span className="mb-1.5 block text-sm font-semibold text-fg">Enlace de la encuesta</span>
             <input type="url" value={url} onChange={(e) => setUrl(e.target.value.trim())} className={inputCls} />
           </label>
-          {!esUrl(url) && <p role="alert" className="text-sm text-red-700">Ingresá un enlace que empiece con https://</p>}
+          {!esUrl(url) && <p role="alert" className="text-sm text-danger">Ingresá un enlace que empiece con https://</p>}
           <button type="button" onClick={copiar} disabled={!esUrl(url)} className={btnSecundario}>
             {copiado ? "¡Copiado!" : "Copiar enlace"}
           </button>
         </div>
         {qr && (
           <div className="flex flex-col items-center gap-3">
-            <img src={qr} alt={`Código QR que abre ${url}`} className="h-44 w-44 rounded-2xl bg-white p-2 ring-1 ring-slate-200" />
+            <img src={qr} alt={`Código QR que abre ${url}`} className="h-44 w-44 rounded-2xl bg-surface p-2 ring-1 ring-line" />
             <a href={qr} download="qr-encuesta.png" className={`${btnPrimario} inline-block`}>
               Descargar QR (PNG)
             </a>

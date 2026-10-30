@@ -16,6 +16,16 @@ service cloud.firestore {
       allow list, write: if false;
     }
 
+    // Ronda de la encuesta: cualquiera puede leerla (para saber si ya participó en la vuelta actual);
+    // solo los docentes la cambian, y únicamente al reiniciar desde el panel.
+    match /config/encuesta {
+      allow get: if true;
+      allow list, delete: if false;
+      allow create, update: if esDocente() &&
+        request.resource.data.keys().hasOnly(['ronda']) &&
+        request.resource.data.ronda is int;
+    }
+
     match /encuestas_habitos/{id} {
       // Solo docentes autorizados leen y borran (el panel). Nadie edita desde el navegador.
       allow read: if esDocente();

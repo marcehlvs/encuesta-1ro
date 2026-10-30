@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
 import EncuestaForm from "./components/EncuestaForm";
 import { IDIOMAS, TEXTOS, idiomaInicial, guardarIdioma } from "./i18n";
-
-const KEY = "encuesta_completada";
-
-function yaCompleto() {
-  try {
-    return localStorage.getItem(KEY) === "true";
-  } catch {
-    return false;
-  }
-}
+import { rondaLocal, guardarRondaLocal, rondaRemota } from "./ronda";
 
 export default function App() {
-  const [completada, setCompletada] = useState(yaCompleto);
+  // Si este dispositivo ya participó, se confirma con Firestore que la ronda siga siendo la misma
+  // (el docente puede haber reiniciado la encuesta). Mientras tanto no se muestra ni el formulario ni el agradecimiento.
+  const [participo] = useState(() => rondaLocal());
+  const [verificando, setVerificando] = useState(participo !== null);
+  const [completada, setCompletada] = useState(participo !== null);
   const [idioma, setIdioma] = useState(idiomaInicial);
   const t = TEXTOS[idioma];
+
+  useEffect(() => {
+    if (participo === null) return;
+    let activo = true;
+    rondaRemota()
+      .then((r) => { if (activo && r !== participo) setCompletada(false); })
+      .catch((err) => console.warn("Encuesta: no se pudo comprobar la ronda; se mantiene lo guardado en el dispositivo", err))
+      .finally(() => { if (activo) setVerificando(false); });
+    return () => { activo = false; };
+  }, [participo]);
+
+  const alEnviar = async () => {
+    setCompletada(true);
+    let r = 0;
+    try { r = await rondaRemota(); } catch { /* sin conexión: queda la ronda inicial */ }
+    guardarRondaLocal(r);
+  };
 
   useEffect(() => {
     document.documentElement.lang = idioma;
@@ -58,14 +70,16 @@ export default function App() {
           <p className="mt-3 text-base text-slate-600">{t.subtitulo}</p>
         </header>
 
-        {completada ? (
+        {verificando ? (
+          <p role="status" className="text-center text-slate-600">…</p>
+        ) : completada ? (
           <div role="status" className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-indigo-100 ring-1 ring-slate-100">
             <p aria-hidden="true" className="text-5xl">🎉</p>
             <h2 className="mt-4 text-2xl font-bold text-slate-900">{t.gracias}</h2>
             <p className="mt-2 text-slate-600">{t.graciasTxt}</p>
           </div>
         ) : (
-          <EncuestaForm t={t} onSuccess={() => setCompletada(true)} />
+          <EncuestaForm t={t} onSuccess={alEnviar} />
         )}
       </div>
     </main>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { deleteDoc } from "firebase/firestore";
 import { explicarErrorFirebase } from "../diagnostico";
+import { nuevaRonda } from "../ronda";
 import { btnPeligro, btnSecundario } from "./ui";
 
 const PALABRA = "BORRAR";
@@ -29,7 +30,7 @@ export default function BorrarDatos({ refs, onTerminado }) {
   };
 
   const borrar = async () => {
-    if (!confirmado || ocupado || total === 0) return;
+    if (!confirmado || ocupado) return;
     setEstado("borrando");
     setHechos(0);
     setFallo(null);
@@ -49,7 +50,15 @@ export default function BorrarDatos({ refs, onTerminado }) {
       setFallo(explicarErrorFirebase(primerError));
       setEstado("error");
     } else {
-      setEstado("listo");
+      // Habilita de nuevo a quienes ya habían participado (cambia la ronda en Firestore).
+      try {
+        await nuevaRonda();
+        setEstado("listo");
+      } catch (err) {
+        console.error("Panel: se borraron las respuestas pero no se pudo reiniciar la participación", err);
+        setFallo(explicarErrorFirebase(err));
+        setEstado("errorRonda");
+      }
     }
     onTerminado(); // vuelve a leer lo que quedó
   };
@@ -57,29 +66,29 @@ export default function BorrarDatos({ refs, onTerminado }) {
   return (
     <section className="rounded-3xl bg-white p-5 shadow-lg shadow-red-100/60 ring-1 ring-red-200">
       <h3 className="flex items-center gap-2 text-lg font-bold text-red-800">
-        <span aria-hidden="true">🗑️</span>Borrar datos
+        <span aria-hidden="true">🗑️</span>Reiniciar encuesta
       </h3>
 
       {estado === "listo" && (
         <p role="status" className="mt-3 rounded-2xl bg-green-50 px-4 py-2.5 text-sm text-green-800 ring-1 ring-green-100">
-          Listo: se borraron {hechos} respuestas.
+          Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.
         </p>
       )}
 
       {!abierto ? (
         <div className="mt-2 space-y-3">
           <p className="text-sm text-slate-700">
-            Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos.
-            No se puede deshacer.
+            Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos,
+            y permite que quienes ya participaron puedan responder otra vez. No se puede deshacer.
           </p>
-          <button type="button" disabled={total === 0} onClick={() => { setEstado("quieto"); setAbierto(true); }} className={btnPeligro}>
-            Borrar todas las respuestas…
+          <button type="button" onClick={() => { setEstado("quieto"); setAbierto(true); }} className={btnPeligro}>
+            Reiniciar encuesta…
           </button>
         </div>
       ) : (
         <div className="mt-3 space-y-3">
           <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-100">
-            <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva.</p>
+            <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva y a habilitar de nuevo la encuesta para todas las personas.</p>
             <p className="mt-1">Si querés conservar los resultados, descargá antes la planilla (CSV) desde la parte de arriba del panel.</p>
           </div>
 
@@ -95,6 +104,12 @@ export default function BorrarDatos({ refs, onTerminado }) {
           {ocupado && (
             <p role="status" className="text-sm text-slate-700">Borrando… {hechos} de {total}</p>
           )}
+          {estado === "errorRonda" && fallo && (
+            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
+              <p>Se borraron {hechos} respuestas, pero no se pudo habilitar de nuevo la encuesta. Volvé a tocar “Borrar y reiniciar”. Código: <code>{fallo.codigo}</code></p>
+              <p className="mt-1 text-xs">{fallo.pista} Revisá que hayas publicado las reglas nuevas de <code>firestore.rules</code> (colección <code>config</code>).</p>
+            </div>
+          )}
           {estado === "error" && fallo && (
             <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
               <p>No se pudo terminar el borrado (se borraron {hechos}). Código: <code>{fallo.codigo}</code></p>
@@ -103,8 +118,8 @@ export default function BorrarDatos({ refs, onTerminado }) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={borrar} disabled={!confirmado || ocupado || total === 0} className={btnPeligro}>
-              {ocupado ? "Borrando…" : "Borrar definitivamente"}
+            <button type="button" onClick={borrar} disabled={!confirmado || ocupado} className={btnPeligro}>
+              {ocupado ? "Reiniciando…" : "Borrar y reiniciar"}
             </button>
             <button type="button" onClick={cerrar} disabled={ocupado} className={btnSecundario}>
               {estado === "listo" ? "Cerrar" : "Cancelar"}

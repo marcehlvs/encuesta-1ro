@@ -1,0 +1,281 @@
+From c80741656422c2010b5545577450377d4825d90a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 30 Oct 2026 23:13:04 +0000
+Subject: [PATCH] =?UTF-8?q?Reiniciar=20encuesta:=20borra=20respuestas=20y?=
+ =?UTF-8?q?=20habilita=20de=20nuevo=20la=20participaci=C3=B3n=20(ronda=20e?=
+ =?UTF-8?q?n=20Firestore)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ README.md                       |  4 +++-
+ firestore.rules                 | 10 +++++++++
+ src/App.jsx                     | 40 ++++++++++++++++++++++-----------
+ src/components/BorrarDatos.jsx  | 37 +++++++++++++++++++++---------
+ src/components/EncuestaForm.jsx |  1 -
+ src/ronda.js                    | 36 +++++++++++++++++++++++++++++
+ 6 files changed, 102 insertions(+), 26 deletions(-)
+ create mode 100644 src/ronda.js
+
+diff --git a/README.md b/README.md
+index 11d4db2..700db08 100644
+--- a/README.md
++++ b/README.md
+@@ -25,7 +25,9 @@ Quien no tenga su documento en `docentes` no puede leer respuestas, aunque logre
+ 
+ **Privacidad:** no se muestran ni se exportan los roles, cursos ni edades con menos de 5 respuestas (`MIN_GRUPO` en `src/agregacion.js`), y esas respuestas tampoco entran en los totales. La planilla solo contiene datos agregados. Este filtro se aplica en el navegador del docente: protege lo que se ve y se descarga, pero quien tenga acceso a la consola de Firebase sigue viendo las respuestas individuales.
+ 
+-**Borrar datos:** la tarjeta roja del final del panel elimina todas las respuestas, previa confirmación escribiendo `BORRAR`. No se puede deshacer, y cualquier persona de `docentes` puede hacerlo. Requiere que `firestore.rules` tenga `allow delete: if esDocente()`.
++**Reiniciar la encuesta:** la tarjeta roja del final del panel elimina todas las respuestas, previa confirmación escribiendo `BORRAR`, y además **habilita de nuevo a quienes ya participaron**. No se puede deshacer, y cualquier persona de `docentes` puede hacerlo. Requiere que `firestore.rules` tenga `allow delete: if esDocente()` y la regla de `config/encuesta` (publicá las reglas antes de usarlo).
++
++*Cómo funciona:* cada dispositivo recuerda en qué "ronda" participó (`localStorage`). La ronda vigente está en el documento `config/encuesta` de Firestore; al reiniciar, el panel guarda un número nuevo y, la próxima vez que alguien abra el enlace, el dispositivo ve que la ronda cambió y vuelve a mostrar el formulario. Es un control de "una vez por dispositivo" (no impide responder desde otro navegador o en modo incógnito), coherente con que la encuesta sea anónima.
+ 
+ ## Compartir: enlace corto y QR
+ - Un enlace corto gratis: creá un sitio de Hosting con nombre corto (`firebase hosting:sites:create encuesta-storni`, queda en `https://encuesta-storni.web.app`) y desplegá ahí.
+diff --git a/firestore.rules b/firestore.rules
+index ce869d8..8927466 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -16,6 +16,16 @@ service cloud.firestore {
+       allow list, write: if false;
+     }
+ 
++    // Ronda de la encuesta: cualquiera puede leerla (para saber si ya participó en la vuelta actual);
++    // solo los docentes la cambian, y únicamente al reiniciar desde el panel.
++    match /config/encuesta {
++      allow get: if true;
++      allow list, delete: if false;
++      allow create, update: if esDocente() &&
++        request.resource.data.keys().hasOnly(['ronda']) &&
++        request.resource.data.ronda is int;
++    }
++
+     match /encuestas_habitos/{id} {
+       // Solo docentes autorizados leen y borran (el panel). Nadie edita desde el navegador.
+       allow read: if esDocente();
+diff --git a/src/App.jsx b/src/App.jsx
+index d560da4..3de1610 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -1,22 +1,34 @@
+ import { useEffect, useState } from "react";
+ import EncuestaForm from "./components/EncuestaForm";
+ import { IDIOMAS, TEXTOS, idiomaInicial, guardarIdioma } from "./i18n";
+-
+-const KEY = "encuesta_completada";
+-
+-function yaCompleto() {
+-  try {
+-    return localStorage.getItem(KEY) === "true";
+-  } catch {
+-    return false;
+-  }
+-}
++import { rondaLocal, guardarRondaLocal, rondaRemota } from "./ronda";
+ 
+ export default function App() {
+-  const [completada, setCompletada] = useState(yaCompleto);
++  // Si este dispositivo ya participó, se confirma con Firestore que la ronda siga siendo la misma
++  // (el docente puede haber reiniciado la encuesta). Mientras tanto no se muestra ni el formulario ni el agradecimiento.
++  const [participo] = useState(() => rondaLocal());
++  const [verificando, setVerificando] = useState(participo !== null);
++  const [completada, setCompletada] = useState(participo !== null);
+   const [idioma, setIdioma] = useState(idiomaInicial);
+   const t = TEXTOS[idioma];
+ 
++  useEffect(() => {
++    if (participo === null) return;
++    let activo = true;
++    rondaRemota()
++      .then((r) => { if (activo && r !== participo) setCompletada(false); })
++      .catch((err) => console.warn("Encuesta: no se pudo comprobar la ronda; se mantiene lo guardado en el dispositivo", err))
++      .finally(() => { if (activo) setVerificando(false); });
++    return () => { activo = false; };
++  }, [participo]);
++
++  const alEnviar = async () => {
++    setCompletada(true);
++    let r = 0;
++    try { r = await rondaRemota(); } catch { /* sin conexión: queda la ronda inicial */ }
++    guardarRondaLocal(r);
++  };
++
+   useEffect(() => {
+     document.documentElement.lang = idioma;
+     document.title = t.tituloPagina;
+@@ -58,14 +70,16 @@ export default function App() {
+           <p className="mt-3 text-base text-slate-600">{t.subtitulo}</p>
+         </header>
+ 
+-        {completada ? (
++        {verificando ? (
++          <p role="status" className="text-center text-slate-600">…</p>
++        ) : completada ? (
+           <div role="status" className="rounded-3xl bg-white p-8 text-center shadow-xl shadow-indigo-100 ring-1 ring-slate-100">
+             <p aria-hidden="true" className="text-5xl">🎉</p>
+             <h2 className="mt-4 text-2xl font-bold text-slate-900">{t.gracias}</h2>
+             <p className="mt-2 text-slate-600">{t.graciasTxt}</p>
+           </div>
+         ) : (
+-          <EncuestaForm t={t} onSuccess={() => setCompletada(true)} />
++          <EncuestaForm t={t} onSuccess={alEnviar} />
+         )}
+       </div>
+     </main>
+diff --git a/src/components/BorrarDatos.jsx b/src/components/BorrarDatos.jsx
+index 3fdb84d..6ccb555 100644
+--- a/src/components/BorrarDatos.jsx
++++ b/src/components/BorrarDatos.jsx
+@@ -1,6 +1,7 @@
+ import { useState } from "react";
+ import { deleteDoc } from "firebase/firestore";
+ import { explicarErrorFirebase } from "../diagnostico";
++import { nuevaRonda } from "../ronda";
+ import { btnPeligro, btnSecundario } from "./ui";
+ 
+ const PALABRA = "BORRAR";
+@@ -29,7 +30,7 @@ export default function BorrarDatos({ refs, onTerminado }) {
+   };
+ 
+   const borrar = async () => {
+-    if (!confirmado || ocupado || total === 0) return;
++    if (!confirmado || ocupado) return;
+     setEstado("borrando");
+     setHechos(0);
+     setFallo(null);
+@@ -49,7 +50,15 @@ export default function BorrarDatos({ refs, onTerminado }) {
+       setFallo(explicarErrorFirebase(primerError));
+       setEstado("error");
+     } else {
+-      setEstado("listo");
++      // Habilita de nuevo a quienes ya habían participado (cambia la ronda en Firestore).
++      try {
++        await nuevaRonda();
++        setEstado("listo");
++      } catch (err) {
++        console.error("Panel: se borraron las respuestas pero no se pudo reiniciar la participación", err);
++        setFallo(explicarErrorFirebase(err));
++        setEstado("errorRonda");
++      }
+     }
+     onTerminado(); // vuelve a leer lo que quedó
+   };
+@@ -57,29 +66,29 @@ export default function BorrarDatos({ refs, onTerminado }) {
+   return (
+     <section className="rounded-3xl bg-white p-5 shadow-lg shadow-red-100/60 ring-1 ring-red-200">
+       <h3 className="flex items-center gap-2 text-lg font-bold text-red-800">
+-        <span aria-hidden="true">🗑️</span>Borrar datos
++        <span aria-hidden="true">🗑️</span>Reiniciar encuesta
+       </h3>
+ 
+       {estado === "listo" && (
+         <p role="status" className="mt-3 rounded-2xl bg-green-50 px-4 py-2.5 text-sm text-green-800 ring-1 ring-green-100">
+-          Listo: se borraron {hechos} respuestas.
++          Listo: se borraron {hechos} respuestas y la encuesta quedó habilitada de nuevo para todas las personas.
+         </p>
+       )}
+ 
+       {!abierto ? (
+         <div className="mt-2 space-y-3">
+           <p className="text-sm text-slate-700">
+-            Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos.
+-            No se puede deshacer.
++            Elimina todas las respuestas guardadas ({total} en este momento), también las que el panel no muestra por tener pocos casos,
++            y permite que quienes ya participaron puedan responder otra vez. No se puede deshacer.
+           </p>
+-          <button type="button" disabled={total === 0} onClick={() => { setEstado("quieto"); setAbierto(true); }} className={btnPeligro}>
+-            Borrar todas las respuestas…
++          <button type="button" onClick={() => { setEstado("quieto"); setAbierto(true); }} className={btnPeligro}>
++            Reiniciar encuesta…
+           </button>
+         </div>
+       ) : (
+         <div className="mt-3 space-y-3">
+           <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-100">
+-            <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva.</p>
++            <p className="font-semibold">Vas a borrar {total} respuestas de forma definitiva y a habilitar de nuevo la encuesta para todas las personas.</p>
+             <p className="mt-1">Si querés conservar los resultados, descargá antes la planilla (CSV) desde la parte de arriba del panel.</p>
+           </div>
+ 
+@@ -95,6 +104,12 @@ export default function BorrarDatos({ refs, onTerminado }) {
+           {ocupado && (
+             <p role="status" className="text-sm text-slate-700">Borrando… {hechos} de {total}</p>
+           )}
++          {estado === "errorRonda" && fallo && (
++            <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
++              <p>Se borraron {hechos} respuestas, pero no se pudo habilitar de nuevo la encuesta. Volvé a tocar “Borrar y reiniciar”. Código: <code>{fallo.codigo}</code></p>
++              <p className="mt-1 text-xs">{fallo.pista} Revisá que hayas publicado las reglas nuevas de <code>firestore.rules</code> (colección <code>config</code>).</p>
++            </div>
++          )}
+           {estado === "error" && fallo && (
+             <div role="alert" className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-800 ring-1 ring-red-100">
+               <p>No se pudo terminar el borrado (se borraron {hechos}). Código: <code>{fallo.codigo}</code></p>
+@@ -103,8 +118,8 @@ export default function BorrarDatos({ refs, onTerminado }) {
+           )}
+ 
+           <div className="flex flex-wrap gap-2">
+-            <button type="button" onClick={borrar} disabled={!confirmado || ocupado || total === 0} className={btnPeligro}>
+-              {ocupado ? "Borrando…" : "Borrar definitivamente"}
++            <button type="button" onClick={borrar} disabled={!confirmado || ocupado} className={btnPeligro}>
++              {ocupado ? "Reiniciando…" : "Borrar y reiniciar"}
+             </button>
+             <button type="button" onClick={cerrar} disabled={ocupado} className={btnSecundario}>
+               {estado === "listo" ? "Cerrar" : "Cancelar"}
+diff --git a/src/components/EncuestaForm.jsx b/src/components/EncuestaForm.jsx
+index 6d812b4..42a97f8 100644
+--- a/src/components/EncuestaForm.jsx
++++ b/src/components/EncuestaForm.jsx
+@@ -96,7 +96,6 @@ export default function EncuestaForm({ t, onSuccess }) {
+     ultimoIntento.current = Date.now();
+     try {
+       await addDoc(collection(db, "encuestas_habitos"), { ...datos, timestamp: serverTimestamp() });
+-      try { localStorage.setItem("encuesta_completada", "true"); } catch { /* sin almacenamiento */ }
+       onSuccess();
+     } catch (err) {
+       console.error("Encuesta: falló el envío", err);
+diff --git a/src/ronda.js b/src/ronda.js
+new file mode 100644
+index 0000000..af0c317
+--- /dev/null
++++ b/src/ronda.js
+@@ -0,0 +1,36 @@
++import { doc, getDoc, setDoc } from "firebase/firestore";
++import { db } from "./firebaseConfig";
++
++// "Ronda": número que identifica cada vuelta de la encuesta. Vive en Firestore (config/encuesta).
++// Cuando el docente reinicia, la ronda cambia y los dispositivos que habían participado
++// en la ronda anterior vuelven a poder responder.
++const KEY = "encuesta_completada";
++const REF = () => doc(db, "config", "encuesta");
++
++// Valor guardado en el dispositivo: la ronda en la que participó (o null si no participó).
++// El valor "true" de versiones anteriores equivale a la ronda 0 (la inicial, sin documento de configuración).
++export function rondaLocal() {
++  try {
++    const v = localStorage.getItem(KEY);
++    if (v === null) return null;
++    return v === "true" ? 0 : Number(v);
++  } catch {
++    return null;
++  }
++}
++
++export function guardarRondaLocal(ronda) {
++  try { localStorage.setItem(KEY, String(ronda)); } catch { /* sin almacenamiento */ }
++}
++
++// Ronda vigente. Si todavía no existe el documento, es la 0. Si no se puede leer, lanza el error.
++export async function rondaRemota() {
++  const snap = await getDoc(REF());
++  const r = snap.exists() ? snap.data().ronda : 0;
++  return Number.isInteger(r) ? r : 0;
++}
++
++// Solo desde el panel docente (las reglas exigen estar en /docentes).
++export async function nuevaRonda() {
++  await setDoc(REF(), { ronda: Date.now() });
++}
+-- 
+2.43.0
+

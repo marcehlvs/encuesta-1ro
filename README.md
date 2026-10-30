@@ -25,7 +25,9 @@ Quien no tenga su documento en `docentes` no puede leer respuestas, aunque logre
 
 **Privacidad:** no se muestran ni se exportan los roles, cursos ni edades con menos de 5 respuestas (`MIN_GRUPO` en `src/agregacion.js`), y esas respuestas tampoco entran en los totales. La planilla solo contiene datos agregados. Este filtro se aplica en el navegador del docente: protege lo que se ve y se descarga, pero quien tenga acceso a la consola de Firebase sigue viendo las respuestas individuales.
 
-**Borrar datos:** la tarjeta roja del final del panel elimina todas las respuestas, previa confirmación escribiendo `BORRAR`. No se puede deshacer, y cualquier persona de `docentes` puede hacerlo. Requiere que `firestore.rules` tenga `allow delete: if esDocente()`.
+**Reiniciar la encuesta:** la tarjeta roja del final del panel elimina todas las respuestas, previa confirmación escribiendo `BORRAR`, y además **habilita de nuevo a quienes ya participaron**. No se puede deshacer, y cualquier persona de `docentes` puede hacerlo. Requiere que `firestore.rules` tenga `allow delete: if esDocente()` y la regla de `config/encuesta` (publicá las reglas antes de usarlo).
+
+*Cómo funciona:* cada dispositivo recuerda en qué "ronda" participó (`localStorage`). La ronda vigente está en el documento `config/encuesta` de Firestore; al reiniciar, el panel guarda un número nuevo y, la próxima vez que alguien abra el enlace, el dispositivo ve que la ronda cambió y vuelve a mostrar el formulario. Es un control de "una vez por dispositivo" (no impide responder desde otro navegador o en modo incógnito), coherente con que la encuesta sea anónima.
 
 ## Compartir: enlace corto y QR
 - Un enlace corto gratis: creá un sitio de Hosting con nombre corto (`firebase hosting:sites:create encuesta-storni`, queda en `https://encuesta-storni.web.app`) y desplegá ahí.

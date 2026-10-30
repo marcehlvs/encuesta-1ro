@@ -96,7 +96,6 @@ export default function EncuestaForm({ t, onSuccess }) {
     ultimoIntento.current = Date.now();
     try {
       await addDoc(collection(db, "encuestas_habitos"), { ...datos, timestamp: serverTimestamp() });
-      try { localStorage.setItem("encuesta_completada", "true"); } catch { /* sin almacenamiento */ }
       onSuccess();
     } catch (err) {
       console.error("Encuesta: falló el envío", err);

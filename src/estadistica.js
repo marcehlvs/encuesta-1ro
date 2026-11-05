@@ -105,3 +105,63 @@ export function armarEstadistica(rows) {
     categoricas: CATEGORICAS.map((c) => ({ ...c, datos: frecuencias(publicables, c.key, c.orden) })),
   };
 }
+
+// ---- Solapas por curso (1ro A y 1ro B): tablas de frecuencias para calcular a mano ----
+
+// Tabla de frecuencias de una variable numérica: xi, fi, Fi (acumulada), fr (relativa) y xi·fi.
+export function tablaFrecuencias(valores) {
+  const v = valores.filter((x) => Number.isFinite(x));
+  const c = new Map();
+  for (const x of v) c.set(x, (c.get(x) ?? 0) + 1);
+  const n = v.length;
+  let acum = 0;
+  const filas = [...c]
+    .sort((a, b) => a[0] - b[0])
+    .map(([x, fi]) => {
+      acum += fi;
+      return { x, fi, Fi: acum, fr: n ? fi / n : 0, xfi: x * fi };
+    });
+  return { n, filas, sumaXfi: v.reduce((a, b) => a + b, 0) };
+}
+
+// Frecuencias de una variable por categorías, con el conteo exacto (sin agrupar en "Otras respuestas"),
+// porque acá el objetivo es poder rehacer las cuentas a mano.
+export function frecuenciasExactas(filas, campo, orden) {
+  const c = new Map(orden.map((g) => [g, 0]));
+  for (const r of filas) if (c.has(r[campo])) c.set(r[campo], c.get(r[campo]) + 1);
+  const total = [...c.values()].reduce((a, b) => a + b, 0);
+  let acum = 0;
+  return orden.map((nombre) => {
+    const fi = c.get(nombre);
+    acum += fi;
+    return { nombre, fi, Fi: acum, fr: total ? fi / total : 0 };
+  });
+}
+
+// Variables que se muestran en cada solapa de curso. `ordinal`: tiene un orden natural, así que la acumulada tiene sentido.
+export const NUMERICAS_CURSO = [
+  ...NUMERICAS,
+  { key: "horasLectura", label: "Horas de lectura", unidad: "h/día", emoji: "📖", color: "#10b981" },
+];
+export const CATEGORICAS_CURSO = [
+  { key: "rol", label: "Rol", emoji: "🧑‍🎓", orden: ROLES, ordinal: false },
+  { key: "rangoEdad", label: "Rango de edad", emoji: "🎂", orden: EDADES, ordinal: true },
+  { key: "alimentacion", label: "Tipo de alimentación", emoji: "🥗", orden: ALIMENTACION, ordinal: false },
+  { key: "diasActividad", label: "Actividad física (días/sem)", emoji: "🏃", orden: ACTIVIDAD, ordinal: true },
+  { key: "celularAntesDormir", label: "Celular antes de dormir", emoji: "🌙", orden: CELULAR, ordinal: true },
+];
+
+// Datos de un solo curso. Parte de las respuestas publicables (mismo filtro de privacidad que el resto del panel).
+export function armarCurso(rows, curso) {
+  const { publicables } = conjuntoPublicable(rows);
+  const filas = publicables.filter((r) => cursoDe(r) === curso);
+  return {
+    curso,
+    n: filas.length,
+    numericas: NUMERICAS_CURSO.map((m) => {
+      const valores = filas.map((x) => x[m.key]).filter((x) => Number.isFinite(x));
+      return { ...m, tabla: tablaFrecuencias(valores), resumen: resumenNumerico(valores) };
+    }),
+    categoricas: CATEGORICAS_CURSO.map((c) => ({ ...c, datos: frecuenciasExactas(filas, c.key, c.orden) })),
+  };
+}

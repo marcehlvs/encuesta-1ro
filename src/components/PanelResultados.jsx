@@ -3,9 +3,10 @@ import { METRICAS, MIN_GRUPO, armarTablas, aCsv } from "../agregacion";
 import { armarEstadistica } from "../estadistica";
 import Graficos from "./Graficos";
 import Estadistica from "./Estadistica";
+import CursoResultados from "./CursoResultados";
 import { Titulo, btnPrimario, tarjeta } from "./ui";
 
-const PESTANAS = [["resumen", "📋 Resumen"], ["graficos", "📊 Gráficos"], ["estadistica", "🧮 Estadística"]];
+const PESTANAS = [["resumen", "📋 Resumen"], ["graficos", "📊 Gráficos"], ["estadistica", "🧮 Estadística"], ["cursoA", "🅰️ 1ro A"], ["cursoB", "🅱️ 1ro B"]];
 
 const nf = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const fmt = (v, m) => (v === null ? "—" : m.pct ? `${Math.round(v)} %` : nf.format(v));
@@ -180,6 +181,8 @@ export default function PanelResultados({ filas }) {
             )}
             {pestana === "graficos" && <Graficos est={est} />}
             {pestana === "estadistica" && <Estadistica est={est} />}
+            {pestana === "cursoA" && <CursoResultados filas={filas} curso="1ro A" />}
+            {pestana === "cursoB" && <CursoResultados filas={filas} curso="1ro B" />}
           </div>
         </>
       )}

@@ -101,6 +101,67 @@ export default function Graficos({ est }) {
           ))}
         </div>
       </section>
+
+      <section className={tarjeta}>
+        <Titulo emoji="🔢">Frecuencia de cada valor</Titulo>
+        <p className="mb-4 text-xs text-muted">
+          Para cada pregunta numérica, cuántas personas respondieron exactamente cada valor. “%” es la parte del total y “% acumulado” suma los valores hasta esa fila.
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          {est.numericas.map((m) => (
+            <div key={m.key} className="rounded-2xl bg-surface-2 p-4 ring-1 ring-line">
+              <h4 className="mb-2 flex items-center gap-2 font-semibold text-fg"><span aria-hidden="true">{m.emoji}</span>{m.label}</h4>
+              {m.frecs.length ? <TablaFrecuencias m={m} /> : <p className="text-sm text-muted">Todavía hay pocos datos.</p>}
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const nfv = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+
+// Cuántas personas respondieron cada valor exacto (por ejemplo: 7 horas → 5 personas).
+function TablaFrecuencias({ m }) {
+  const total = m.frecs.reduce((a, f) => a + f.n, 0);
+  const max = Math.max(1, ...m.frecs.map((f) => f.n));
+  return (
+    <div className="overflow-x-auto rounded-xl ring-1 ring-line">
+      <table className="w-full text-left text-sm">
+        <caption className="sr-only">Frecuencia de cada valor: {m.label}</caption>
+        <thead className="bg-brand-soft text-brand-text">
+          <tr>
+            <th scope="col" className="px-3 py-2 font-semibold">Valor ({m.unidad})</th>
+            <th scope="col" className="px-3 py-2 text-right font-semibold">Personas</th>
+            <th scope="col" className="px-3 py-2 text-right font-semibold">%</th>
+            <th scope="col" className="px-3 py-2 text-right font-semibold">% acumulado</th>
+            <th scope="col" className="w-1/3 px-3 py-2"><span className="sr-only">Barra</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {m.frecs.map((f) => (
+            <tr key={f.valor} className="border-t border-line even:bg-surface-2/60">
+              <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums text-fg">{nfv.format(f.valor)}</th>
+              <td className="px-3 py-1.5 text-right tabular-nums text-fg">{f.n}</td>
+              <td className="px-3 py-1.5 text-right tabular-nums text-fg-soft">{Math.round(f.pct)} %</td>
+              <td className="px-3 py-1.5 text-right tabular-nums text-fg-soft">{Math.round(f.acumPct)} %</td>
+              <td className="px-3 py-1.5" aria-hidden="true">
+                <div className="h-2.5 overflow-hidden rounded-full bg-surface ring-1 ring-line">
+                  <div className="h-2.5 rounded-full" style={{ width: `${(f.n / max) * 100}%`, background: m.color }} />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-line bg-surface-2">
+            <th scope="row" className="px-3 py-1.5 font-semibold text-fg">Total</th>
+            <td className="px-3 py-1.5 text-right font-semibold tabular-nums text-fg">{total}</td>
+            <td colSpan={3} />
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }

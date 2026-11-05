@@ -67,6 +67,21 @@ export function histograma(valores, paso) {
   return cajas;
 }
 
+// Frecuencia de cada valor exacto de una variable numérica (cuántas personas respondieron cada número).
+// Sale solo de las respuestas publicables, igual que los histogramas.
+export function frecuenciaPorValor(valores) {
+  const c = new Map();
+  for (const x of valores) if (Number.isFinite(x)) c.set(x, (c.get(x) ?? 0) + 1);
+  const total = [...c.values()].reduce((a, b) => a + b, 0);
+  let acum = 0;
+  return [...c]
+    .sort((a, b) => a[0] - b[0])
+    .map(([valor, n]) => {
+      acum += n;
+      return { valor, n, pct: total ? (n / total) * 100 : 0, acumPct: total ? (acum / total) * 100 : 0 };
+    });
+}
+
 // Frecuencias de una variable por categorías. Las categorías con menos de `min` respuestas
 // se agrupan en "Otras respuestas", para no exponer conteos muy chicos.
 export function frecuencias(filas, campo, orden, min = MIN_GRUPO) {
@@ -85,7 +100,7 @@ export function armarEstadistica(rows) {
     n: publicables.length,
     numericas: NUMERICAS.map((m) => {
       const r = resumenNumerico(publicables.map((x) => x[m.key]));
-      return { ...m, resumen: r, cajas: r ? histograma(r.valores, m.paso) : [] };
+      return { ...m, resumen: r, cajas: r ? histograma(r.valores, m.paso) : [], frecs: r ? frecuenciaPorValor(r.valores) : [] };
     }),
     categoricas: CATEGORICAS.map((c) => ({ ...c, datos: frecuencias(publicables, c.key, c.orden) })),
   };
